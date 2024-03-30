@@ -79,7 +79,6 @@ def insert_into_relation_table(f_path):
         while(row):
             #Handle different tables    
             if('synonyms' in f_path):
-                print(row)
                 row = re.split(",|;|\|", row)
                 word = row[0]
                 synonyms = row[2:]
