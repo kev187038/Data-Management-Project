@@ -21,7 +21,10 @@
 # Each lemma#PoS in this file is associated with the prior polarity value computed from the scores of 
 # all the SentiWordNet senses for that lemma#PoS, following the methodology described in Guerini et al. (2013). 
 # Prior Polarity values are between -1 (very negative) and +1 (very positive).
-#
+# a = adjective
+# n = noun
+# v = verb
+# r = satellite
 # --------------------------------------------
 #
 # lemma#PoS	prior_polarity_score
