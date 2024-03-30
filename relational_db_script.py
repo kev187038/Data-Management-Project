@@ -103,7 +103,7 @@ def insert_into_entity_table(f_path):
 				
 			conn.commit()
 
-#insert_into_entity_table('./SentiWords_1.0.txt')
+insert_into_entity_table('./SentiWords_1.0.txt')
 
 def insert_into_relation_table(f_path):
 	with open(f_path, 'r') as f:
@@ -185,10 +185,7 @@ def insert_into_relation_table(f_path):
 				break
 		conn.commit()
 		
-
-#insert_into_relation_table("./synonyms.csv")
-
-#insert_into_relation_table("./antonyms.csv")
-#insert_into_relation_table("./hypernyms.csv")
+insert_into_relation_table("./synonyms.csv")
+insert_into_relation_table("./antonyms.csv")
+insert_into_relation_table("./hypernyms.csv")
 insert_into_relation_table("./hyponyms.csv")
-		
