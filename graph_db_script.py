@@ -25,7 +25,7 @@ def insert_into_entity_table(f_path):
 
                 if len(result) == 0:
                     session.run("CREATE (w:Word  {word: $word, type: $type})", {"word": word, "type": type_})
-                    print("Inserted (%s, %s)", (word, type_))
+                    print  ("Inserted (%s, %s)", (word, type_))
                 
                 row = f.readline().strip()
                 if not row:
@@ -61,7 +61,7 @@ def insert_into_entity_table(f_path):
                 if len(result) == 0:
                     sentiment = float(row[2])
                     session.run("CREATE (w:Word  {word: $word, type: $type, sentiment: $sentiment})", {"word": word, "type": type_, "sentiment": sentiment})
-                    print("Inserted (%s, %s, %s)", (word, type_, sentiment))
+                    print  ("Inserted (%s, %s, %s)", (word, type_, sentiment))
                 
                 row = f.readline().strip()
                 if not row:
@@ -84,17 +84,13 @@ def insert_into_relation_table(f_path):
                 synonyms = row[2:]
                 
                 for syn in synonyms:
-                    #We make sure the tuple has not been inserted already
-                    result = list(session.run("MATCH (w:Word {word: $word}) -[:IsSynonym]-> (s:Word {word: $synonym}) RETURN w, s", {"word": word, "synonym": syn}))
-                    if len(result) == 0:
-                        #We make sure each of the two words (word and synonym) are present in the word table
-                        result = list((session.run("MATCH (w:Word {word: $word}) RETURN w", word=word)))
-                        if len(result) > 0:
-                            result = list((session.run("MATCH (s:Word {word: $synonym}) RETURN s", synonym=syn)))
-                            if len(result) > 0:
-                                session.run("MATCH (w:Word {word: $word}), (s:Word {word: $synonym}) CREATE (w)-[:IsSynonym]->(s)", {"word": word, "synonym": syn})
-                                session.run("MATCH (w:Word {word: $word}), (s:Word {word: $synonym}) CREATE (s)-[:IsSynonym]->(w)", {"word": word, "synonym": syn})
-                                print("INSERTED (word, synonym): ",(word, syn))
+                    # Check if the synonym relationship already exists
+                    result = session.run("MATCH (w:Word {word: $word})-[:IsSynonym]->(s:Word {word: $synonym}) RETURN count(*) AS count", {"word": word, "synonym": syn})
+                    count = result.single()["count"]
+                    
+                    if count == 0:
+                        # Create the synonym relationship bidirectionally
+                        session.run("MATCH (w:Word {word: $word}), (s:Word {word: $synonym}) MERGE (w)-[:IsSynonym]->(s) MERGE (s)-[:IsSynonym]->(w)", {"word": word, "synonym": syn})       
                                 
             if('antonyms' in f_path):
                 row = re.split(",|;|\|", row)
@@ -103,33 +99,26 @@ def insert_into_relation_table(f_path):
                 
                 for an in antonyms:
                     #We make sure the tuple has not been inserted already
-                    result = list(session.run("MATCH (w:Word {word: $word}) -[:IsAntonym]-> (s:Word {word: $antonym}) RETURN w, s", {"word": word, "antonym": an}))
-                    if len(result) == 0:
+                    result = session.run("MATCH (w:Word {word: $word}) -[:IsAntonym]-> (s:Word {word: $antonym}) RETURN count(*) AS count", {"word": word, "antonym": an})
+                    count = result.single()["count"]
+                    
+                    if count == 0:
                         #We make sure each of the two words (word and antonym) are present in the word table
-                        result = list((session.run("MATCH (w:Word {word: $word}) RETURN w", word=word)))
-                        if len(result) > 0:
-                            result = list((session.run("MATCH (s:Word {word: $antonym}) RETURN s", antonym=an)))
-                            if len(result) > 0:
-                                session.run("MATCH (w:Word {word: $word}), (s:Word {word: $antonym}) CREATE (w)-[:IsAntonym]->(s)", {"word": word, "antonym": an})
-                                session.run("MATCH (w:Word {word: $word}), (s:Word {word: $antonym}) CREATE (s)-[:IsAntonym]->(w)", {"word": word, "antonym": an})
-                                print("INSERTED (word, antonym): ",(word, an))
+                        session.run("MATCH (w:Word {word: $word}), (s:Word {word: $antonym}) MERGE (w)-[:IsAntonym]->(s) MERGE (s)-[:IsAntonym]->(w)", {"word": word, "antonym": an})       
+
             if('hypernyms' in f_path):
                 row = re.split(",|;|\|", row)
                 hyponym = row[0]
                 hypernyms = row[2:]
 
-
                 for hyper in hypernyms:
                     #We make sure the tuple has not been inserted already
-                    result = list(session.run("MATCH (hypo:Word {word: $hyponym}) -[:IsHypernym]-> (hyper:Word {word: $hypernym}) RETURN hypo, hyper", {"hyponym": hyponym, "hypernym": hyper}))
-                    if len(result) == 0:
+                    result = session.run("MATCH (hypo:Word {word: $hyponym}) -[:IsHypernym]-> (hyper:Word {word: $hypernym}) RETURN count(*) AS count", {"hyponym": hyponym, "hypernym": hyper})
+                    count = result.single()["count"]
+                    
+                    if count == 0:
                         #We make sure each of the two words (hyponym and hypernym) are present in the word table
-                        result = list((session.run("MATCH (w:Word {word: $word}) RETURN w", word=hyponym)))
-                        if len(result) > 0:
-                            result = list((session.run("MATCH (w:Word {word: $word}) RETURN w", word=hyper)))
-                            if len(result) > 0:
-                                session.run("MATCH (hypo:Word {word: $hyponym}), (hyper:Word {word: $hypernym}) CREATE (hyper)-[:IsHypernym]->(hypo)", {"hyponym": hyponym, "hypernym": hyper})
-                                print("INSERTED (hyponym, hypernym): ",(hyponym, hyper))
+                        session.run("MATCH (hypo:Word {word: $hyponym}), (hyper:Word {word: $hypernym}) MERGE (hyper)-[:IsHypernym]->(hypo)", {"hyponym": hyponym, "hypernym": hyper})       
             
             if('hyponyms' in f_path):
                 row = re.split(",|;|\|", row)
@@ -138,23 +127,23 @@ def insert_into_relation_table(f_path):
                 
                 for hypon in hyponyms:
                     #We make sure the tuple has not been inserted already
-                    result = list(session.run("MATCH (hypo:Word {word: $hyponym}) -[:IsHypernym]-> (hyper:Word {word: $hypernym}) RETURN hypo, hyper", {"hyponym": hypon, "hypernym": hypernym}))
-                    if len(result) == 0:
-                        #We make sure each of the two words are present in the word table
-                        result = list((session.run("MATCH (w:Word {word: $word}) RETURN w", word=hypon)))
-                        if len(result) > 0:
-                            result = list((session.run("MATCH (w:Word {word: $word}) RETURN w", word=hypernym)))
-                            if len(result) > 0:
-                                session.run("MATCH (hypo:Word {word: $hyponym}), (hyper:Word {word: $hypernym}) CREATE (hyper)-[:IsHypernym]->(hypo)", {"hyponym": hypon, "hypernym": hypernym})
-                                print("INSERTED (hyponym, hypernym): ",(hypon, hypernym))
-                    
+                    result = session.run("MATCH (hypo:Word {word: $hyponym}) -[:IsHypernym]-> (hyper:Word {word: $hypernym}) RETURN count(*) AS count", {"hyponym": hypon, "hypernym": hypernym})
+                    count = result.single()["count"]
+
+                    if count == 0:
+                        #We make sure each of the two words (hyponym and hypernym) are present in the word table
+                        session.run("MATCH (hypo:Word {word: $hyponym}), (hyper:Word {word: $hypernym}) MERGE (hyper)-[:IsHypernym]->(hypo)", {"hyponym": hypon, "hypernym": hypernym})                           
                 
             row = f.readline().strip()
             if not row:
                 break
-        
+
+print('begin synonyms')
 insert_into_relation_table("./synonyms.csv")
+print('begin antonyms')
 insert_into_relation_table("./antonyms.csv")
+print('begin hypernyms')
 insert_into_relation_table("./hypernyms.csv")
+print('begin hyponyms')
 insert_into_relation_table("./hyponyms.csv")        
 driver.close()
