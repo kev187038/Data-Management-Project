@@ -103,7 +103,7 @@ def insert_into_entity_table(f_path):
 				
 			conn.commit()
 
-insert_into_entity_table('./SentiWords_1.0.txt')
+#insert_into_entity_table('./SentiWords_1.0.txt')
 
 def insert_into_relation_table(f_path):
 	with open(f_path, 'r') as f:
@@ -114,10 +114,11 @@ def insert_into_relation_table(f_path):
 			#Handle different tables	
 			if('synonyms' in f_path):
 				row = re.split(",|;|\|", row)
-				word = row[0]
+				word = row[0].lower().replace(' ', '_')
 				synonyms = row[2:]
-				
+
 				for syn in synonyms:
+					syn = syn.lower().replace(' ', '_')
 					#We make sure the tuple has not been inserted already
 					cursor.execute("SELECT * FROM IsSynonym WHERE word = %s and synonym = %s", (word, w_type, syn))
 					if not cursor.fetchone():
@@ -131,10 +132,11 @@ def insert_into_relation_table(f_path):
 								
 			if('antonyms' in f_path):
 				row = re.split(",|;|\|", row)
-				word = row[0]
+				word = row[0].lower().replace(' ', '_')
 				antonyms = row[2:]
 				
 				for an in antonyms:
+					an = an.lower().replace(' ', '_')
 					#We make sure the tuple has not been inserted already
 					cursor.execute("SELECT * FROM Isantonym WHERE word = %s and antonym = %s", (word, an))
 					if not cursor.fetchone():
@@ -147,10 +149,11 @@ def insert_into_relation_table(f_path):
 								print("INSERTED (word, antonym): ",(word, an))
 			if('hypernyms' in f_path):
 				row = re.split(",|;|\|", row)
-				hyponym = row[0]
+				hyponym = row[0].lower().replace(' ', '_')
 				hypernyms = row[2:]
 				
 				for hyper in hypernyms:
+					hyper = hyper.lower().replace(' ', '_')
 					#We make sure the tuple has not been inserted already
 					cursor.execute("SELECT * FROM IsHypernym WHERE hyponym = %s and hypernym = %s", (hyponym, hyper))
 					if not cursor.fetchone():
@@ -164,10 +167,11 @@ def insert_into_relation_table(f_path):
 			
 			if('hyponyms' in f_path):
 				row = re.split(",|;|\|", row)
-				hypernym = row[0]
+				hypernym = row[0].lower().replace(' ', '_')
 				hyponyms = row[2:]
 				
 				for hypon in hyponyms:
+					hypon = hypon.lower().replace(' ', '_')
 					#We make sure the tuple has not been inserted already
 					cursor.execute("SELECT * FROM IsHypernym WHERE hyponym = %s and hypernym = %s", (hypon, hypernym))
 					if not cursor.fetchone():
