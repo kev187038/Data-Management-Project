@@ -1,6 +1,6 @@
 -------------RELATIONAL DB-------------
 REMOVE DUPLICATES
-delete from ishypernym where hyponym=word
+delete from issynonym where synonym=word
 delete from ishypernym where hyponym=hypernym
 antonyms do not require cleansing
 
