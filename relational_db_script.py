@@ -8,41 +8,41 @@ conn = psycopg2.connect(dbname="words_relational", user="postgres", password="pa
 
 cursor = conn.cursor()
 #ci sono dei problemi
-cursor.execute('''CREATE TABLE IF NOT EXISTS WORDS (
-			word varchar,
-			type varchar(50),
-			sentiment float,
-			primary key (word, type)
-			)''')
+#cursor.execute('''CREATE TABLE IF NOT EXISTS WORDS (
+#			word varchar,
+#			type varchar(50),
+#			sentiment float,
+#			primary key (word, type)
+#			)''')
 			
-cursor.execute('''CREATE TABLE IF NOT EXISTS IsSynonym (
-			word varchar,
-			w_type varchar(50),
-			synonym varchar,
-			s_type varchar(50),
-			foreign key (word, w_type) references WORDS(word, type),
-			foreign key (synonym. s_type) references WORDS(word, type)
-			)
-			''')
-cursor.execute('''CREATE TABLE IF NOT EXISTS IsAntonym (
-			word varchar references WORDS(word),
-			w_type varchar(50),
-			antonym varchar references WORDS(word)
-			a_type varchar(50),
-			foreign key (word, w_type) references WORDS(word, type),
-			foreign key (antonym. a_type) references WORDS(word, type)
-			)
-			''')
+#cursor.execute('''CREATE TABLE IF NOT EXISTS IsSynonym (
+#			word varchar,
+#			w_type varchar(50),
+#			synonym varchar,
+#			s_type varchar(50),
+#			foreign key (word, w_type) references WORDS(word, type),
+#			foreign key (synonym, s_type) references WORDS(word, type)
+#			)
+#			''')
+#cursor.execute('''CREATE TABLE IF NOT EXISTS IsAntonym (
+#			word varchar references WORDS(word),
+#			w_type varchar(50),
+#			antonym varchar references WORDS(word)
+#			a_type varchar(50),
+#			foreign key (word, w_type) references WORDS(word, type),
+#			foreign key (antonym, a_type) references WORDS(word, type)
+#			)
+#			''')
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS IsHypernym (
-			hyponym varchar references WORDS(word),
-			hypon_type varchar(50),
-			hypernym varchar references WORDS(word)
-			hyper_type varchar(50),
-			foreign key (hyponym, hypon_type) references WORDS(word, type),
-			foreign key (hypernym. hyper_type) references WORDS(word, type)
-			)
-			''')
+#cursor.execute('''CREATE TABLE IF NOT EXISTS IsHypernym (
+#			hyponym varchar references WORDS(word),
+#			hypon_type varchar(50),
+#			hypernym varchar references WORDS(word)
+#			hyper_type varchar(50),
+#			foreign key (hyponym, hypon_type) references WORDS(word, type),
+#			foreign key (hypernym. hyper_type) references WORDS(word, type)
+#			)
+#			''')
 			
 def insert_into_entity_table(f_path):
 	with open(f_path, 'r') as f:
@@ -120,7 +120,7 @@ def insert_into_relation_table(f_path):
 				for syn in synonyms:
 					syn = syn.lower().replace(' ', '_')
 					#We make sure the tuple has not been inserted already
-					cursor.execute("SELECT * FROM IsSynonym WHERE word = %s and synonym = %s", (word, w_type, syn))
+					cursor.execute("SELECT * FROM IsSynonym WHERE word = %s and synonym = %s", (word, syn))
 					if not cursor.fetchone():
 						#We make sure each of the two words (word and synonym) are present in the word table
 						cursor.execute("SELECT * FROM words where word = %s", (word,))
