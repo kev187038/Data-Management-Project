@@ -116,7 +116,7 @@ def insert_into_relation_table(f_path):
                 for hyper in hypernyms:
                     hyper = hyper.lower().replace(' ', '_')
                     #We make sure the tuple has not been inserted already
-                    result = session.run("MATCH (hypo:Word {word: $hyponym}) -[:IsHypernym]-> (hyper:Word {word: $hypernym}) RETURN count(*) AS count", {"hyponym": hyponym, "hypernym": hyper})
+                    result = session.run("MATCH (hyper:Word {word: $hypernym}) -[:IsHypernym]-> (hypo:Word {word: $hyponym}) RETURN count(*) AS count", {"hyponym": hyponym, "hypernym": hyper})
                     count = result.single()["count"]
                     
                     if count == 0:
@@ -131,7 +131,7 @@ def insert_into_relation_table(f_path):
                 for hypon in hyponyms:
                     hypon = hypon.lower().replace(' ', '_')
                     #We make sure the tuple has not been inserted already
-                    result = session.run("MATCH (hypo:Word {word: $hyponym}) -[:IsHypernym]-> (hyper:Word {word: $hypernym}) RETURN count(*) AS count", {"hyponym": hypon, "hypernym": hypernym})
+                    result = session.run("MATCH (hyper:Word {word: $hypernym}) -[:IsHypernym]-> (hypo:Word {word: $hyponym}) RETURN count(*) AS count", {"hyponym": hypon, "hypernym": hypernym})
                     count = result.single()["count"]
 
                     if count == 0:

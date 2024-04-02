@@ -1,0 +1,8 @@
+-------------RELATIONAL DB-------------
+REMOVE DUPLICATES
+delete from issynonym where synonym=word
+delete from ishypernym where hyponym=hypernym
+antonyms do not require cleansing
+
+-------------GRAPH DB-------------
+MATCH (n)-[r]->(n) DELETE r
