@@ -83,7 +83,7 @@ def insert_into_entity_table(f_path):
 			
 		conn.commit()
 
-#insert_into_entity_table('./SentiWords_1.0.txt')
+insert_into_entity_table('./SentiWords_1.0.txt')
 
 def insert_into_relation_table(f_path):
 	with open(f_path, 'r') as f:
@@ -147,7 +147,7 @@ def insert_into_relation_table(f_path):
 
 								if not cursor.fetchone():
 									#insert the tuple
-									#cursor.execute("INSERT INTO IsSynonym (word, synonym, type_word, type_synonym) values (%s, %s, %s, %s)", (word, syn, type_1, type_2))
+									cursor.execute("INSERT INTO IsSynonym (word, synonym, type_word, type_synonym) values (%s, %s, %s, %s)", (word, syn, type_1, type_2))
 									print("INSERTED (word, type_word, synonym, type_synonym): ",(word, type_1, syn, type_2))
 								
 			if('antonyms' in f_path):
@@ -297,6 +297,6 @@ def insert_into_relation_table(f_path):
 		conn.commit()
 		
 insert_into_relation_table("./synonyms.csv")
-#insert_into_relation_table("./antonyms.csv")
-#insert_into_relation_table("./hypernyms.csv")
-#insert_into_relation_table("./hyponyms.csv")
+insert_into_relation_table("./antonyms.csv")
+insert_into_relation_table("./hypernyms.csv")
+insert_into_relation_table("./hyponyms.csv")
