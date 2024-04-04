@@ -50,9 +50,8 @@ cursor.execute('''
 			BEGIN
 			    IF NOT EXISTS (
 				    SELECT 1
-				    FROM pg_trigger
-				    WHERE tgname = 'insert_inverse_synonym_trigger'
-				      AND tgrelid = TG_RELID
+				    FROM IsSynonym
+				    WHERE word = new.synonym and type_word = new.type_synonym and synonym = new.word and type_synonym = new.type_word
 				) THEN
 				    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
 				    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
@@ -76,9 +75,8 @@ cursor.execute('''
 			BEGIN
 			    IF NOT EXISTS (
 				    SELECT 1
-				    FROM pg_trigger
-				    WHERE tgname = 'insert_inverse_synonym_trigger'
-				      AND tgrelid = TG_RELID
+				    FROM IsAntonym
+				    WHERE word = new.antonym and type_word = new.type_antonym and antonym = new.word and type_antonym = new.type_word
 				) THEN
 				    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
 				    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
@@ -206,7 +204,7 @@ def insert_into_relation_table(f_path):
 									cursor.execute("INSERT INTO IsSynonym (word, synonym, type_word, type_synonym) values (%s, %s, %s, %s)", (word, syn, type_1, type_2))
 									
 									print("INSERTED (word, type_word, synonym, type_synonym): ",(word, type_1, syn, type_2))
-									conn.commit()
+									
 								
 			if('antonyms' in f_path):
 				word = row[0].lower().replace(' ', '_')
