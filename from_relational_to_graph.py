@@ -3,7 +3,7 @@ import psycopg2
 import re
 from neo4j import GraphDatabase
 #Open Relational DB
-conn = psycopg2.connect(dbname="words_relational", user="postgres", password="password", 
+conn = psycopg2.connect(dbname="words-relational", user="postgres", password="password", 
 		host="localhost", port="5432")
 
 
@@ -29,7 +29,7 @@ def copy_words():
 			print("Inserted ($word, $type, $sentiment)", {"word": word, "type": type_, "sentiment": sentiment})
 			session.run("CREATE (w:Word  {word: $word, type: $type, sentiment: $sentiment})", {"word": word, "type": type_, "sentiment": sentiment})
 
-#copy_words()	
+copy_words()	
 
 def copy_relationships():
 	#SYNONYMS
@@ -49,7 +49,7 @@ def copy_relationships():
 	#ANTONYMS	
 	cursor.execute("SELECT * FROM IsAntonym")
 	antonyms = cursor.fetchall()
-	
+	print("Doing antonyms")
 	for tup in antonyms:
 		word = tup[0]
 		word_type = tup[1]
@@ -62,7 +62,7 @@ def copy_relationships():
 	#HYPERNYMS		
 	cursor.execute("SELECT * FROM IsHypernym")
 	hypernyms = cursor.fetchall()
-	
+	print("Doing hypernyms")
 	for tup in hypernyms:
 		hyponym = tup[0]
 		hyponym_type = tup[1]
@@ -72,5 +72,5 @@ def copy_relationships():
 		with driver.session(database=db_name) as session:
 			session.run("MATCH (w:Word {word: $hyponym, type: $hyponym_type}), (s:Word {word: $hypernym, type: $hypernym_type}) MERGE (s)-[:IsHypernym]->(w)", {"hyponym": hyponym, "hyponym_type": hyponym_type, "hypernym": hypernym, "hypernym_type": hypernym_type})
 
-copy_relationships()
+#copy_relationships()
 	
