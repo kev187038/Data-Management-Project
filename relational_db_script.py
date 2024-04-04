@@ -48,15 +48,22 @@ cursor.execute('''
 			CREATE OR REPLACE FUNCTION insert_inverse_synonym()
 			RETURNS TRIGGER AS $$
 			BEGIN
-			    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
-			    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
+			    IF NOT EXISTS (
+				    SELECT 1
+				    FROM pg_trigger
+				    WHERE tgname = 'insert_inverse_synonym_trigger'
+				      AND tgrelid = TG_RELID
+				) THEN
+				    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
+				    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
+				END IF;
 			    RETURN NEW;
 			END;
 			$$ LANGUAGE plpgsql;
 			''')
 
 cursor.execute('''
-			CREATE TRIGGER insert_inverse_synonym_trigger
+			CREATE OR REPLACE TRIGGER insert_inverse_synonym_trigger
 			AFTER INSERT ON IsSynonym
 			FOR EACH ROW
 			EXECUTE FUNCTION insert_inverse_synonym();
@@ -67,15 +74,22 @@ cursor.execute('''
 			CREATE OR REPLACE FUNCTION insert_inverse_antonym()
 			RETURNS TRIGGER AS $$
 			BEGIN
-			    INSERT INTO IsAntonym (word, type_word, antonym, type_antonym)
-			    VALUES (NEW.antonym, NEW.type_antonym, NEW.word, NEW.type_word);
+			    IF NOT EXISTS (
+				    SELECT 1
+				    FROM pg_trigger
+				    WHERE tgname = 'insert_inverse_synonym_trigger'
+				      AND tgrelid = TG_RELID
+				) THEN
+				    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
+				    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
+				END IF;
 			    RETURN NEW;
 			END;
 			$$ LANGUAGE plpgsql;
 			''')
 
 cursor.execute('''
-			CREATE TRIGGER insert_inverse_antonym_trigger
+			CREATE OR REPLACE TRIGGER insert_inverse_antonym_trigger
 			AFTER INSERT ON IsAntonym
 			FOR EACH ROW
 			EXECUTE FUNCTION insert_inverse_antonym();
@@ -190,7 +204,9 @@ def insert_into_relation_table(f_path):
 								if not cursor.fetchone():
 									#insert the tuple
 									cursor.execute("INSERT INTO IsSynonym (word, synonym, type_word, type_synonym) values (%s, %s, %s, %s)", (word, syn, type_1, type_2))
+									
 									print("INSERTED (word, type_word, synonym, type_synonym): ",(word, type_1, syn, type_2))
+									conn.commit()
 								
 			if('antonyms' in f_path):
 				word = row[0].lower().replace(' ', '_')
@@ -339,6 +355,6 @@ def insert_into_relation_table(f_path):
 		conn.commit()
 		
 insert_into_relation_table("./synonyms.csv")
-#insert_into_relation_table("./antonyms.csv")
+insert_into_relation_table("./antonyms.csv")
 #insert_into_relation_table("./hypernyms.csv")
 #insert_into_relation_table("./hyponyms.csv")
