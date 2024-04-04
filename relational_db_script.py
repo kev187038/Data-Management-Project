@@ -78,8 +78,8 @@ cursor.execute('''
 				    FROM IsAntonym
 				    WHERE word = new.antonym and type_word = new.type_antonym and antonym = new.word and type_antonym = new.type_word
 				) THEN
-				    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
-				    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
+				    INSERT INTO IsAntonym (word, type_word, antonym, type_antonym)
+				    VALUES (NEW.antonym, NEW.type_antonym, NEW.word, NEW.type_word);
 				END IF;
 			    RETURN NEW;
 			END;
