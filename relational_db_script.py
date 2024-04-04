@@ -42,6 +42,48 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS IsHypernym (
 			foreign key (hypernym, type_hypernym) references WORDS(word,type)			
 			)
 			''')
+
+# Trigger per l'inserimento dei sinonimi in ordine inverso
+cursor.execute('''
+			CREATE OR REPLACE FUNCTION insert_inverse_synonym()
+			RETURNS TRIGGER AS $$
+			BEGIN
+			    INSERT INTO IsSynonym (word, type_word, synonym, type_synonym)
+			    VALUES (NEW.synonym, NEW.type_synonym, NEW.word, NEW.type_word);
+			    RETURN NEW;
+			END;
+			$$ LANGUAGE plpgsql;
+			''')
+
+cursor.execute('''
+			CREATE TRIGGER insert_inverse_synonym_trigger
+			AFTER INSERT ON IsSynonym
+			FOR EACH ROW
+			EXECUTE FUNCTION insert_inverse_synonym();
+			''')
+
+# Trigger per l'inserimento degli antonimi in ordine inverso
+cursor.execute('''
+			CREATE OR REPLACE FUNCTION insert_inverse_antonym()
+			RETURNS TRIGGER AS $$
+			BEGIN
+			    INSERT INTO IsAntonym (word, type_word, antonym, type_antonym)
+			    VALUES (NEW.antonym, NEW.type_antonym, NEW.word, NEW.type_word);
+			    RETURN NEW;
+			END;
+			$$ LANGUAGE plpgsql;
+			''')
+
+cursor.execute('''
+			CREATE TRIGGER insert_inverse_antonym_trigger
+			AFTER INSERT ON IsAntonym
+			FOR EACH ROW
+			EXECUTE FUNCTION insert_inverse_antonym();
+			''')
+
+# Commit delle modifiche
+conn.commit()
+
 			
 def insert_into_entity_table(f_path):
 	with open(f_path, 'r') as f:
