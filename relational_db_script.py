@@ -125,7 +125,7 @@ def insert_into_entity_table(f_path):
 			
 		conn.commit()
 
-insert_into_entity_table('./SentiWords_1.0.txt')
+#insert_into_entity_table('./SentiWords_1.0.txt')
 
 def insert_into_relation_table(f_path):
 	with open(f_path, 'r') as f:
