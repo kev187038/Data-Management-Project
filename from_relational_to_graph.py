@@ -33,7 +33,7 @@ copy_words()
 
 def copy_relationships():
 	#SYNONYMS
-	cursor.execute("SELECT * FROM IsSynonym")
+	cursor.execute("SELECT * FROM IsSynonym where word < synonym") #######AGGIUNTA WHERE CLAUSE
 	synonyms = cursor.fetchall()
 	
 	for tup in synonyms:
@@ -47,7 +47,7 @@ def copy_relationships():
 			session.run("MATCH (w:Word {word: $word, type: $word_type}), (s:Word {word: $synonym, type: $syn_type}) MERGE (w)-[:IsSynonym]->(s) MERGE (s)-[:IsSynonym]->(w)", {"word": word, "word_type": word_type, "synonym": syn, "syn_type": syn_type})
 			
 	#ANTONYMS	
-	cursor.execute("SELECT * FROM IsAntonym")
+	cursor.execute("SELECT * FROM IsAntonym where word < antonym") #######AGGIUNTA WHERE CLAUSE
 	antonyms = cursor.fetchall()
 	print("Doing antonyms")
 	for tup in antonyms:
