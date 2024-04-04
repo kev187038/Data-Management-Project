@@ -83,7 +83,7 @@ def insert_into_entity_table(f_path):
 			
 		conn.commit()
 
-insert_into_entity_table('./SentiWords_1.0.txt')
+#insert_into_entity_table('./SentiWords_1.0.txt')
 
 def insert_into_relation_table(f_path):
 	with open(f_path, 'r') as f:
@@ -101,6 +101,10 @@ def insert_into_relation_table(f_path):
 				cursor.execute("SELECT type FROM words where word = %s", (word,))
 				types1 = cursor.fetchall()
 
+				for i in range(len(types1)):
+					types1[i] = types1[i][0]
+				types1.sort()
+				
 				#if the word in the db
 				if len(types1) > 0:
 					synonyms = row[2:]
@@ -114,30 +118,36 @@ def insert_into_relation_table(f_path):
 							#We make sure each of the synonym is present in the word table
 							cursor.execute("SELECT type from words where word = %s", (syn,))
 							types2 = cursor.fetchall()
+							
 
 							#check the synonym is in the db
 							if len(types2) > 0:
+								for i in range(len(types2)):
+									types2[i] = types2[i][0]
+								types2.sort()
+
 
 								#choose the type: privilege intersection
 								inters = list(set(types1) & set(types2))
 								if len(inters) > 0:
-									if tuple([type]) in inters:
+									if type in inters:
 										type_1 = type
-										type_2 = type
+										type_2 = type_1
 									else:
-										type_1 = inters[0][0]
-										type_2 = inters[0][0]
+										inters.sort()
+										type_1 = inters[0]
+										type_2 = type_1
 								else:
 									#if no intersection, try using the given type!
-									type_1 = type if tuple([type]) in types1 else types1[0][0]
-									type_2 = type if tuple([type]) in types2 else types2[0][0]
+									type_1 = type if type in types1 else types1[0]
+									type_2 = type if type in types2 else types2[0]
 
 								#We make sure the tuple has not been inserted already
 								cursor.execute("SELECT * FROM IsSynonym WHERE word = %s and synonym = %s and type_word = %s and type_synonym = %s", (word, syn, type_1, type_2))
 
 								if not cursor.fetchone():
 									#insert the tuple
-									cursor.execute("INSERT INTO IsSynonym (word, synonym, type_word, type_synonym) values (%s, %s, %s, %s)", (word, syn, type_1, type_2))
+									#cursor.execute("INSERT INTO IsSynonym (word, synonym, type_word, type_synonym) values (%s, %s, %s, %s)", (word, syn, type_1, type_2))
 									print("INSERTED (word, type_word, synonym, type_synonym): ",(word, type_1, syn, type_2))
 								
 			if('antonyms' in f_path):
@@ -145,7 +155,11 @@ def insert_into_relation_table(f_path):
 				#We make sure the tuple has not been inserted already
 				cursor.execute("SELECT type FROM words where word = %s", (word,))
 				types1 = cursor.fetchall()
-
+				
+				for i in range(len(types1)):
+					types1[i] = types1[i][0]
+				types1.sort()
+				
 				if len(types1) > 0:
 					antonyms = row[2:]
 
@@ -155,18 +169,27 @@ def insert_into_relation_table(f_path):
 						if word!= an:
 							cursor.execute("SELECT type from words where word = %s", (an,))
 							types2 = cursor.fetchall()
+
 							if len(types2) > 0:
+								for i in range(len(types2)):
+									types2[i] = types2[i][0]
+								types2.sort()
+
+
+								#choose the type: privilege intersection
 								inters = list(set(types1) & set(types2))
 								if len(inters) > 0:
-									if tuple([type]) in inters:
+									if type in inters:
 										type_1 = type
-										type_2 = type
+										type_2 = type_1
 									else:
-										type_1 = inters[0][0]
-										type_2 = inters[0][0]
+										inters.sort()
+										type_1 = inters[0]
+										type_2 = type_1
 								else:
-									type_1 = type if tuple([type]) in types1 else types1[0][0]
-									type_2 = type if tuple([type]) in types2 else types2[0][0]
+									#if no intersection, try using the given type!
+									type_1 = type if type in types1 else types1[0]
+									type_2 = type if type in types2 else types2[0]
 
 								#We make sure the tuple has not been inserted already
 								cursor.execute("SELECT * FROM IsAntonym WHERE word = %s and antonym = %s and type_word = %s and type_antonym = %s", (word, an, type_1, type_2))
@@ -180,6 +203,11 @@ def insert_into_relation_table(f_path):
 				cursor.execute("SELECT type FROM words where word = %s", (hyponym,))
 				types1 = cursor.fetchall()
 
+				for i in range(len(types1)):
+					types1[i] = types1[i][0]
+				types1.sort()
+				
+
 				if len(types1) > 0:
 					hypernyms = row[2:]
 					
@@ -191,17 +219,25 @@ def insert_into_relation_table(f_path):
 							types2 = cursor.fetchall()
 	
 							if len(types2) > 0:
+								for i in range(len(types2)):
+									types2[i] = types2[i][0]
+								types2.sort()
+
+
+								#choose the type: privilege intersection
 								inters = list(set(types1) & set(types2))
 								if len(inters) > 0:
-									if tuple([type]) in inters:
+									if type in inters:
 										type_1 = type
-										type_2 = type
+										type_2 = type_1
 									else:
-										type_1 = inters[0][0]
-										type_2 = inters[0][0]
+										inters.sort()
+										type_1 = inters[0]
+										type_2 = type_1
 								else:
-									type_1 = type if tuple([type]) in types1 else types1[0][0]
-									type_2 = type if tuple([type]) in types2 else types2[0][0]
+									#if no intersection, try using the given type!
+									type_1 = type if type in types1 else types1[0]
+									type_2 = type if type in types2 else types2[0]
 								
 								#We make sure the tuple has not been inserted already
 								cursor.execute("SELECT * FROM IsHypernym WHERE hyponym = %s and hypernym = %s and type_hyponym = %s and type_hypernym = %s", (hyponym, hyper, type_1, type_2))
@@ -214,6 +250,11 @@ def insert_into_relation_table(f_path):
 				hypernym = row[0].lower().replace(' ', '_')
 				cursor.execute("SELECT type FROM words where word = %s", (hypernym,))
 				types1 = cursor.fetchall()
+
+				for i in range(len(types1)):
+					types1[i] = types1[i][0]
+				types1.sort()
+				
 				if len(types1) > 0:
 					hyponyms = row[2:]
 
@@ -224,17 +265,25 @@ def insert_into_relation_table(f_path):
 							types2 = cursor.fetchall()
 
 							if len(types2) > 0:
+								for i in range(len(types2)):
+									types2[i] = types2[i][0]
+								types2.sort()
+
+
+								#choose the type: privilege intersection
 								inters = list(set(types1) & set(types2))
 								if len(inters) > 0:
-									if tuple([type]) in inters:
+									if type in inters:
 										type_1 = type
-										type_2 = type
+										type_2 = type_1
 									else:
-										type_1 = inters[0][0]
-										type_2 = inters[0][0]
+										inters.sort()
+										type_1 = inters[0]
+										type_2 = type_1
 								else:
-									type_1 = type if tuple([type]) in types1 else types1[0][0]
-									type_2 = type if tuple([type]) in types2 else types2[0][0]
+									#if no intersection, try using the given type!
+									type_1 = type if type in types1 else types1[0]
+									type_2 = type if type in types2 else types2[0]
 
 								#We make sure the tuple has not been inserted already
 								cursor.execute("SELECT * FROM IsHypernym WHERE hyponym = %s and hypernym = %s and type_hyponym = %s and type_hypernym = %s", (hypon, hypernym, type_2, type_1))
@@ -248,6 +297,6 @@ def insert_into_relation_table(f_path):
 		conn.commit()
 		
 insert_into_relation_table("./synonyms.csv")
-insert_into_relation_table("./antonyms.csv")
-insert_into_relation_table("./hypernyms.csv")
-insert_into_relation_table("./hyponyms.csv")
+#insert_into_relation_table("./antonyms.csv")
+#insert_into_relation_table("./hypernyms.csv")
+#insert_into_relation_table("./hyponyms.csv")
