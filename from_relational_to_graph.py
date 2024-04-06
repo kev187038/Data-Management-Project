@@ -74,5 +74,5 @@ def copy_relationships():
 			print("Inserted ($hyponym, $hyponym_type, $hypernym, $hypernym_type)",  {"hyponym": hyponym, "hyponym_type": hyponym_type, "hypernym": hypernym, "hypernym_type": hypernym_type}) 
 			session.run("MATCH (w:Word {word: $hyponym, type: $hyponym_type}), (s:Word {word: $hypernym, type: $hypernym_type}) MERGE (s)-[:IsHypernym]->(w)", {"hyponym": hyponym, "hyponym_type": hyponym_type, "hypernym": hypernym, "hypernym_type": hypernym_type})
 
-#copy_relationships()
+copy_relationships()
 	

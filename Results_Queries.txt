@@ -1,0 +1,154 @@
+--------------------UNFAIR COMPARISON--------------------------------------------
+
+Average Synonym/Antonyms/Hypernyms/Hyponyms per word: Calculate average number of Synonyms/Antonyms/Hypernyms/Hyponyms per word:
+
+with Countsyn as (select count(synonym), words.word
+from issynonym right join words on words.word=issynonym.word
+group by words.word)
+
+select avg(count)from Countsyn
+
+1500 msec circa for Synonyms, 452 msec for antonyms, 1190 msec for hypernym
+
+results: 
+	synonym avg is 2.46
+	antonym average is 0.13 
+	Hypernym/Hyponym average is 1.96
+
+We need to right join on words to factor in those words that do not have a synonym/antonym/hypernym
+
+GRAPH QUERY
+
+#########
+
+synonym 514 msec
+antonyms 300 msec
+hypernyms 500 msec
+
+--------------------------- Words with synonyms words per count
+relational 2000 msec, graph 859 msec
+
+with countsyn as (select count(synonym) as c, words.word, words.sentiment
+from issynonym right join words on words.word = issynonym.word
+group by words.word)
+
+select avg(sentiment), c
+from countsyn
+group by c
+
+500msec circa
+
+match (n) optional match (n)-[r:IsSynonym]->(m)
+with n.sentiment as sentiment, count(r) as numSyn, n
+return avg(sentiment), numSyn
+
+1000 msec circa
+
+
+---------------------Hypernyms depth 3 without sentiment
+GRAPH
+16.4 sec
+
+#####################
+
+RELATIONAL
+7:46 minutes
+with hypernyms_till_depth_three as (
+select h1.hypernym, h1.type_hypernym, h2.hyponym, h2.type_hyponym
+from ishypernym h1
+union 
+select h1.hypernym, h1.type_hypernym, h2.hyponym, h2.type_hyponym
+from ishypernym h1 
+      join ishypernym h2 
+      on h1.hyponym = h2.hypernym and h1.type_hyponym = h2.type_hypernym
+union 
+select h1.hypernym, h1.type_hypernym, h3.hyponym, h3.type_hyponym
+from ishypernym h1 
+     join ishypernym h2 
+     on h1.hyponym = h2.hypernym and h1.type_hyponym = h2.type_hypernym 
+     join ishypernym h3
+     on h2.hyponym = h3.hypernym and h2.type_hyponym = h3.type_hypernym 
+)
+
+select hypernym, type_hypernym, count(distinct(hyponym, type_hyponym))
+from hypernyms_till_depth_three
+group by hypernym, type_hypernym
+order by count desc
+
+-----------------------------Hypernym sentiment evolution with path depth 3 to get the average sentiment of hyponyms compared to the respective hypernym
+GRAPH 28.83 seconds
+
+RELATIONAL QUERY
+with hypernyms_till_depth_three as (
+select h1.hypernym, h1.type_hypernym, h1.hyponym, h1.type_hyponym
+from ishypernym h1
+union 
+select h1.hypernym, h1.type_hypernym, h2.hyponym, h2.type_hyponym
+from ishypernym h1 
+      join ishypernym h2 
+      on h1.hyponym = h2.hypernym and h1.type_hyponym = h2.type_hypernym
+union 
+select h1.hypernym, h1.type_hypernym, h3.hyponym, h3.type_hyponym
+from ishypernym h1 
+     join ishypernym h2 
+     on h1.hyponym = h2.hypernym and h1.type_hyponym = h2.type_hypernym 
+     join ishypernym h3
+     on h2.hyponym = h3.hypernym and h2.type_hyponym = h3.type_hypernym 
+)
+select hyper.word, hyper.type, hyper.sentiment, avg(hypon.sentiment)
+from words hyper join hypernyms_till_depth_three h1
+     on hyper.word = h1.hypernym and hyper.type = h1.type_hypernym
+     join words hypon 
+     on hypon.word = h1.hyponym and hypon.type = h1.type_hyponym
+where (hyper.word, hyper.type) in (select hypernym, type_hypernym
+                                   from (select hypernym, type_hypernym, count((hyponym, type_hyponym)) as c
+                                         from hypernyms_till_depth_three
+                                         group by hypernym, type_hypernym) as counter
+                                   where c > 20000)
+group by hyper.word, hyper.type, hyper.sentiment
+
+----------------------------------Antonyms with max sentiment difference and take the synonyms of this antonyms such that the sentiment difference between these differences is minimal 
+and greater than zero (between the sentiments of the two antonyms separated). 
+We look for the "political words" defined as: two political words p1 and p2 are such if they are synonyms of antynoms a1 and a2 where a1 is antonym of a2 and the difference of 
+sentiment between p1 and p2 is minimal throughout all possible such synonyms. 
+
+
+
+with distant_antonyms as (
+select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym,
+from words w1 join isantonym a
+     on w1.word = a.word and w1.type = a.type_word
+     join words w2
+     on w2.word = a.antonym and w2.type = a.type_antonym
+where w1.sentiment - w2.sentiment > 1
+)
+
+select pol1.word, pol1.type, pol1.sentiment, pol2.word, pol2.type, pol2.sentiment
+from words pol1 join issynonym s1 on
+     pol1.word = s1.word and pol1.type = s1.type_word
+     join distant_antonyms 
+     on s1.synonym = distant_antonyms.word and s1.type_synonym = distant_antonyms.type_word
+     join issynonym s2
+     on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
+     join words pol2 
+     on pol2.word = s2.word and pol2.type_word = s2.type_word
+group by distant_antonyms.word, distant_antonyms.type_word, distant_antonyms.antonym, distant_antonyms
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
