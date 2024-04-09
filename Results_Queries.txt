@@ -115,15 +115,17 @@ sentiment between p1 and p2 is minimal throughout all possible such synonyms.
 
 
 with distant_antonyms as (
-select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym,
+select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym
 from words w1 join isantonym a
      on w1.word = a.word and w1.type = a.type_word
      join words w2
      on w2.word = a.antonym and w2.type = a.type_antonym
 where w1.sentiment - w2.sentiment > 1
-)
-
-select pol1.word, pol1.type, pol1.sentiment, pol2.word, pol2.type, pol2.sentiment
+), political_pairs as (
+select pol1.word pol1, pol1.type type_pol1, pol1.sentiment sent_pol1,
+      distant_antonyms.word ant1, distant_antonyms.type_word type_ant1,
+      distant_antonyms.antonym ant2, distant_antonyms.type_antonym type_ant2,
+      pol2.word pol2, pol2.type type_pol2, pol2.sentiment sent_pol2
 from words pol1 join issynonym s1 on
      pol1.word = s1.word and pol1.type = s1.type_word
      join distant_antonyms 
@@ -131,8 +133,15 @@ from words pol1 join issynonym s1 on
      join issynonym s2
      on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
      join words pol2 
-     on pol2.word = s2.word and pol2.type_word = s2.type_word
-group by distant_antonyms.word, distant_antonyms.type_word, distant_antonyms.antonym, distant_antonyms
+     on pol2.word = s2.word and pol2.type = s2.type_word
+)
+select pol1, type_pol1, pol2, type_pol2, ant1, type_ant1, ant2, type_ant2, abs(sent_pol1 - sent_pol2) as difference
+from political_pairs as pp
+where abs(sent_pol1 - sent_pol2) <= all(select abs(sent_pol1 - sent_pol2)
+							from political_pairs as pp2
+							where pp.ant1 = pp2.ant1 and pp.type_ant1 = pp2.type_ant1 and pp.ant2 = pp2.ant2 
+									and pp.type_ant2 = pp2.type_ant2
+							) and abs(sent_pol1 - sent_pol2) > 0
 
 
 
