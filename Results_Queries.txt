@@ -128,7 +128,7 @@ WHERE c > 20000
 MATCH (w)-[:IsHypernym*1..3]->(s)
 WITH w, COLLECT(DISTINCT s) as unique_s
 UNWIND unique_s AS s
-RETURN w.word, AVG(s.sentiment)
+RETURN w, AVG(s.sentiment)
 
 ----------------------------------Antonyms with max sentiment difference and take the synonyms of this antonyms such that the sentiment difference between these differences is minimal 
 and greater than zero (between the sentiments of the two antonyms separated). 
