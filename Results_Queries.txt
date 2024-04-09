@@ -1,12 +1,14 @@
 --------------------UNFAIR COMPARISON--------------------------------------------
 
 Average Synonym/Antonyms/Hypernyms/Hyponyms per word: Calculate average number of Synonyms/Antonyms/Hypernyms/Hyponyms per word:
+RELATIONAL QUERY 
 
-with Countsyn as (select count(synonym), words.word
-from issynonym right join words on words.word=issynonym.word
-group by words.word)
+with Countsyn as (select count(synonym) c, words.word, words.type
+from issynonym right join words on (words.word=issynonym.word and words.type = issynonym.type_word)
+group by words.word, words.type)
 
-select avg(count)from Countsyn
+select avg(c) from Countsyn
+
 
 1500 msec circa for Synonyms, 452 msec for antonyms, 1190 msec for hypernym
 
@@ -19,7 +21,10 @@ We need to right join on words to factor in those words that do not have a synon
 
 GRAPH QUERY
 
-#########
+MATCH (w:Word)
+OPTIONAL MATCH (w)-[:IsSynonym]->(s:Word) 
+WITH w, (COUNT(s)) AS c
+RETURN avg(c)
 
 synonym 514 msec
 antonyms 300 msec
@@ -28,15 +33,19 @@ hypernyms 500 msec
 --------------------------- Words with synonyms words per count
 relational 2000 msec, graph 859 msec
 
-with countsyn as (select count(synonym) as c, words.word, words.sentiment
-from issynonym right join words on words.word = issynonym.word
-group by words.word)
+RELATIONAL QUERY
+
+with countsyn as (select count(synonym) as c, words.word, words.type, words.sentiment
+from issynonym right join words on words.word = issynonym.word and words.type = issynonym.type_word
+group by words.word, words.type, words.sentiment)
 
 select avg(sentiment), c
 from countsyn
 group by c
 
 500msec circa
+
+GRAPH QUERY
 
 match (n) optional match (n)-[r:IsSynonym]->(m)
 with n.sentiment as sentiment, count(r) as numSyn, n
@@ -46,15 +55,11 @@ return avg(sentiment), numSyn
 
 
 ---------------------Hypernyms depth 3 without sentiment
-GRAPH
-16.4 sec
 
-#####################
-
-RELATIONAL
+RELATIONAL QUERY
 7:46 minutes
 with hypernyms_till_depth_three as (
-select h1.hypernym, h1.type_hypernym, h2.hyponym, h2.type_hyponym
+select h1.hypernym, h1.type_hypernym, h1.hyponym, h1.type_hyponym
 from ishypernym h1
 union 
 select h1.hypernym, h1.type_hypernym, h2.hyponym, h2.type_hyponym
@@ -74,6 +79,14 @@ select hypernym, type_hypernym, count(distinct(hyponym, type_hyponym))
 from hypernyms_till_depth_three
 group by hypernym, type_hypernym
 order by count desc
+
+GRAPH QUERY
+16.4 sec
+
+MATCH (w:Word)-[:IsHypernym*1..3]->(s:Word) 
+WITH (COUNT(DISTINCT s)) AS c, w
+ORDER BY c DESC
+RETURN w, c 
 
 -----------------------------Hypernym sentiment evolution with path depth 3 to get the average sentiment of hyponyms compared to the respective hypernym
 GRAPH 28.83 seconds
@@ -107,12 +120,22 @@ where (hyper.word, hyper.type) in (select hypernym, type_hypernym
                                    where c > 20000)
 group by hyper.word, hyper.type, hyper.sentiment
 
+GRAPH QUERY
+
+MATCH (w)-[:IsHypernym*1..3]->(s)
+WITH w, COUNT(DISTINCT s) as c
+WHERE c > 20000
+MATCH (w)-[:IsHypernym*1..3]->(s)
+WITH w, COLLECT(DISTINCT s) as unique_s
+UNWIND unique_s AS s
+RETURN w.word, AVG(s.sentiment)
+
 ----------------------------------Antonyms with max sentiment difference and take the synonyms of this antonyms such that the sentiment difference between these differences is minimal 
 and greater than zero (between the sentiments of the two antonyms separated). 
 We look for the "political words" defined as: two political words p1 and p2 are such if they are synonyms of antynoms a1 and a2 where a1 is antonym of a2 and the difference of 
 sentiment between p1 and p2 is minimal throughout all possible such synonyms. 
 
-
+RELATIONAL QUERY
 
 with distant_antonyms as (
 select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym
@@ -134,6 +157,8 @@ from words pol1 join issynonym s1 on
      on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
      join words pol2 
      on pol2.word = s2.word and pol2.type = s2.type_word
+-- maybe here there should be a where clause
+-- where abs(pol1.sentiment - pol2.sentiment) > 0
 )
 select pol1, type_pol1, pol2, type_pol2, ant1, type_ant1, ant2, type_ant2, abs(sent_pol1 - sent_pol2) as difference
 from political_pairs as pp
@@ -143,8 +168,28 @@ where abs(sent_pol1 - sent_pol2) <= all(select abs(sent_pol1 - sent_pol2)
 									and pp.type_ant2 = pp2.type_ant2
 							) and abs(sent_pol1 - sent_pol2) > 0
 
+GRAPH QUERY
+
+PREPARATION:
+MATCH (w)-[:IsAntonym]->(s)
+WHERE w.sentiment - s.sentiment > 1
+RETURN w, s, (w.sentiment - s.sentiment) as difference
+ORDER BY difference desc
 
 
+MATCH (ant1)-[:IsAntonym]->(ant2)
+WHERE ant1.sentiment - ant2.sentiment > 1
+MATCH (pol1)-[:IsSynonym]->(ant1)-[:IsAntonym]->(ant2)<-[:IsSynonym]-(pol2)
+WITH ant1, ant2, COLLECT({pol1: pol1, pol2: pol2}) AS political_pairs
+WITH ant1, ant2, REDUCE(minDiff = [head(political_pairs)], diff IN tail(political_pairs) |
+    CASE 
+        WHEN abs(diff.pol1.sentiment - diff.pol2.sentiment) < abs(minDiff[0].pol1.sentiment - minDiff[0].pol2.sentiment) THEN [diff]
+        WHEN abs(diff.pol1.sentiment - diff.pol2.sentiment) = abs(minDiff[0].pol1.sentiment - minDiff[0].pol2.sentiment) THEN minDiff + [diff]
+        ELSE minDiff 
+    END) AS minDifference
+UNWIND minDifference AS minDiff
+RETURN minDiff.pol1.word, minDiff.pol2.word, ant1.word, ant2.word, round(abs(minDiff.pol1.sentiment - minDiff.pol2.sentiment),5) AS difference
+ORDER BY difference
 
 
 
