@@ -234,21 +234,6 @@ return  w, toFloat(num_edges)/(num_syn*num_syn) as cluster_coefficient
 order by cluster_coefficient desc
 
 
-with countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
-from issynonym s1 
-group by word, type_word)
-
-select s1.word, s1.type_word, countsyn.numsyn, count((s2.word, s2.type_word)) as numSynOfSyn,
-	cast(count((s2.word, s2.type_word)) as float)/(countsyn.numsyn*countsyn.numsyn) as clusterCoefficient
-from countsyn join issynonym s1 on countsyn.word = s1.word and countsyn.type_word = s1.type_word 
-join issynonym s2 on s2.word = s1.synonym and s2.type_word = s1.type_synonym
-where (s2.synonym, s2.type_synonym) in (select synonym, type_synonym
-					from issynonym
-					where word = s1.word and type_word = s1.type_word)
-group by s1.word, s1.type_word, countsyn.numsyn
-order by clusterCoefficient desc
-
-
 #Col terzo join va nettamente più veloce!
 
 with countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
@@ -263,4 +248,43 @@ join issynonym s3 on s3.word = s2.synonym and s3.type_word = s2.type_synonym
 and s3.synonym = s1.word and s3.type_synonym = s1.type_word
 group by s1.word, s1.type_word, countsyn.numsyn
 order by clusterCoefficient desc
+
+####### AVERAGE CLUSTERING COEFFICIENT
+
+graph cc = 0.5458799
+
+GRAPH
+ 
+Match (w)-[r:IsSynonym]->(s:Word)
+with w, count(r) as num_syn 
+match (w)-[:IsSynonym]->(s:Word)-[t:IsSynonym]->(f:Word)-[:IsSynonym]->(w)
+with w, count(t) as num_edges, num_syn
+with  w, toFloat(num_edges)/(num_syn*num_syn) as cluster_coefficient
+return avg(cluster_coefficient)
+
+time = 5,61 sec
+
+SQL
+
+with countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
+from issynonym s1 
+group by word, type_word),
+
+
+clustering_coefficients as (select s1.word, s1.type_word, countsyn.numsyn,
+	cast(count((s2.word, s2.type_word)) as float)/(countsyn.numsyn*countsyn.numsyn) as clusterCoefficient
+from countsyn join issynonym s1 on countsyn.word = s1.word and countsyn.type_word = s1.type_word 
+join issynonym s2 on s2.word = s1.synonym and s2.type_word = s1.type_synonym
+join issynonym s3 on s3.word = s2.synonym and s3.type_word = s2.type_synonym
+and s3.synonym = s1.word and s3.type_synonym = s1.type_word
+group by s1.word, s1.type_word, countsyn.numsyn)
+
+select avg(clusterCoefficient) as Average_CC
+from clustering_coefficients as cc
+
+time = 12,69 sec
+
+
+
+
 
