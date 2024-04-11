@@ -43,3 +43,5 @@ Sentiment Polarity Analysis in Relationship Networks: Analyze the polarity of se
 Sentiment Flow Analysis in Semantic Networks: Model the flow of sentiment within the semantic network by assigning sentiment scores to nodes and analyzing sentiment propagation through edges. Visualize sentiment flows to identify influential nodes and pathways.
 
 Sentiment Path Length Analysis: Investigate the distribution of sentiment path lengths between words in the semantic network. Determine whether sentiment paths tend to be short and direct or longer and more indirect
+
+DEPENDABILITY ANALYSYS ON GRAPH: HOW MANY NODES DO I NEED TO REMOVE TO DISCONNECT A CLUSTER??
