@@ -191,6 +191,35 @@ UNWIND minDifference AS minDiff
 RETURN minDiff.pol1.word, minDiff.pol2.word, ant1.word, ant2.word, round(abs(minDiff.pol1.sentiment - minDiff.pol2.sentiment),5) AS difference
 ORDER BY difference
 
+####################################################
+Clustering coefficient of a node, the node with the most number of synonyms
+
+GRAPH
+
+Match (w:Word {word: "get", type: "verb"})-[r:IsSynonym]->(s:Word)
+with w, count(r) as num_syn 
+
+match (w)-[:IsSynonym]->(s:Word)-[t:IsSynonym]->(f:Word)-[:IsSynonym]->(w)
+with w, count(t) as num_edges, num_syn
+return  w, toFloat(num_edges)/(num_syn*num_syn) 
+
+SQL
+with countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
+from issynonym s1 
+where word = 'get' and type_word='verb'
+group by word, type_word)
+
+select s1.word, s1.type_word, countsyn.numsyn, count((s2.word, s2.type_word)) as numSynOfSyn,
+	cast(count((s2.word, s2.type_word)) as float)/(countsyn.numsyn*countsyn.numsyn)
+from countsyn join issynonym s1 on countsyn.word = s1.word and countsyn.type_word = s1.type_word 
+join issynonym s2 on s2.word = s1.synonym and s2.type_word = s1.type_synonym 
+where (s2.synonym, s2.type_synonym) in (select synonym, type_synonym
+					from issynonym
+					where word = 'get' and type_word = 'verb')
+group by s1.word, s1.type_word, countsyn.numsyn
+
+300 msec
+
 
 
 
