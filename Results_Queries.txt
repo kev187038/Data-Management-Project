@@ -176,7 +176,6 @@ WHERE w.sentiment - s.sentiment > 1
 RETURN w, s, (w.sentiment - s.sentiment) as difference
 ORDER BY difference desc
 
-
 MATCH (ant1)-[:IsAntonym]->(ant2)
 WHERE ant1.sentiment - ant2.sentiment > 1
 MATCH (pol1)-[:IsSynonym]->(ant1)-[:IsAntonym]->(ant2)<-[:IsSynonym]-(pol2)
@@ -188,8 +187,9 @@ WITH ant1, ant2, REDUCE(minDiff = [head(political_pairs)], diff IN tail(politica
         ELSE minDiff 
     END) AS minDifference
 UNWIND minDifference AS minDiff
-RETURN minDiff.pol1.word, minDiff.pol2.word, ant1.word, ant2.word, round(abs(minDiff.pol1.sentiment - minDiff.pol2.sentiment),5) AS difference
-ORDER BY difference
+WITH minDiff.pol1 AS pol1, minDiff.pol2 AS pol2, ant1, ant2, Round(abs(minDiff.pol1.sentiment - minDiff.pol2.sentiment), 5) AS difference
+WHERE difference >= 1e-5    
+RETURN pol1, pol2, ant1, ant2, difference
 
 ####################################################
 Clustering coefficient of a node, the node with the most number of synonyms
