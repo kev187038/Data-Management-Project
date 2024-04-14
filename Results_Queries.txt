@@ -284,7 +284,52 @@ from clustering_coefficients as cc
 
 time = 12,69 sec
 
+######################## Similarity percentages between sentiment and synonyms 
+
+The average percentage of similar sentiments for synonym relationships is 0.785 for a threshold value of 0.1 in sentiment difference
+The average percentage of similar sentiments for synonym relationships is 0.686 for a threshold value of 0.01 in sentiment difference
 
 
+Relational  time ~= 3.8 sec
+
+with countSyn as (select count((synonym, type_synonym)) as count_tot, words.word as word, words.type as type
+from words join issynonym on words.word = issynonym.word and words.type = issynonym.type_word
+group by words.word, words.type
+),
+
+
+countSent as ( select w1.word as word, w1.type as type, count((w2.word, w2.type)) as countSent
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2 on w2.word = s1.synonym and
+w2.type = s1.type_synonym 
+where abs(w1.sentiment - w2.sentiment) < 0.1
+group by (w1.word, w1.type)
+union
+select w1.word as word, w1.type as type, 0 as countSent
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2 on w2.word = s1.synonym and
+w2.type = s1.type_synonym 
+where (w1.word, w1.type) not in (select w1.word as word, w1.type as type
+	from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2 on w2.word = s1.synonym and
+	w2.type = s1.type_synonym 
+	where abs(w1.sentiment - w2.sentiment) < 0.1
+	) 
+),
+
+results as (select csyn.word, csyn.type, (cast(csen.countSent as float)/csyn.count_tot) as percentage
+from countSyn csyn join countsent csen on csyn.word = csen.word and csyn.type = csen.type)
+
+select avg(percentage) as Average_percentage
+from results
+
+GRAPH
+
+MATCH (n)
+OPTIONAL MATCH (n)-[:IsSynonym]->(m)
+WHERE ABS(n.sentiment - m.sentiment) < 0.1
+WITH n, COUNT(m) AS similar_synonyms
+MATCH (n)-[:IsSynonym]->(m)
+WITH n, similar_synonyms, toFloat(similar_synonyms)/COUNT(m) AS similarity
+RETURN AVG(similarity)
+
+time ~= 1.1 sec
 
 
