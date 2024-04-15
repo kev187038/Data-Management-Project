@@ -332,4 +332,100 @@ RETURN AVG(similarity)
 
 time ~= 1.1 sec
 
+##################################Sentiment correlation with words length
+
+Words seem to have a gaussian distribution on the number based on the length (peak at length 8), words with _ were excluded and do graphs later for slides
+
+RELATIONAL DB
+
+with words_with_len as (select LENGTH(word) as Length, word, words.type as type, sentiment
+from words
+where word not like '%\_%')
+
+select Length, avg(sentiment), count((word, type)) as Num_words
+from words_with_len
+group by Length
+
+GRAPH
+
+MATCH (w)
+WHERE NOT w.word CONTAINS '_'
+RETURN SIZE(w.word) AS length, COUNT(w) as num_words, AVG(w.sentiment) as mean_sentiment
+
+#####################################Zeta Score of synonym sentiment
+
+--AUTOCORRELATION
+MATCH (w)-[:IsSynonym]->(s)
+WITH w, COLLECT(s) + [w] as cluster
+WITH w, cluster,
+     REDUCE(s1 = 0, i IN RANGE(0, SIZE(cluster) - 1) | s1 + cluster[i].sentiment) / SIZE(cluster) AS avg_syn_cluster
+WITH w, cluster, avg_syn_cluster,
+     REDUCE (acc = 0, i IN RANGE(0, SIZE(cluster) - 1) | acc + (cluster[i].sentiment - avg_syn_cluster) * (cluster[i].sentiment - avg_syn_cluster)) AS variance
+WHERE NOT variance = 0
+WITH w, cluster, avg_syn_cluster, variance,
+     REDUCE(acc = 0, i IN RANGE(0, SIZE(cluster) - (2+1)) | acc + (cluster[i].sentiment - avg_syn_cluster) * (cluster[i+2].sentiment - avg_syn_cluster) ) / variance AS auto_corr
+
+RETURN w, avg_syn_cluster, auto_corr
+ORDER BY auto_corr DESC
+
+--ZETA SCORE PROPER
+
+X sentiment della parola da cui parliamo
+mi media di tutti i sentiment
+sigma deviazione standard sentiment dei sinonimi
+
+GRAPH
+
+MATCH (w)-[:IsSynonym]->(s)
+WITH w, COLLECT(s) as synonyms, AVG(s.sentiment) as avg_syn_sentiment
+WITH w, synonyms, avg_syn_sentiment,
+    REDUCE (acc = 0, i IN RANGE(0, SIZE(synonyms) - 1) | acc + (synonyms[i].sentiment - avg_syn_sentiment)*(synonyms[i].sentiment - avg_syn_sentiment))/SIZE(synonyms) AS var
+WITH w, avg_syn_sentiment, SQRT(var) as stddev
+WHERE stddev <>  0
+RETURN w, (w.sentiment - avg_syn_sentiment)/stddev AS zscore, stddev, avg_syn_sentiment
+ORDER BY zscore desc
+
+RELATIONAL 
+
+with average_calculation as (select w1.word, w1.type, w1.sentiment, avg(w2.sentiment)
+as average_cluster_sentiment
+from words w1 join issynonym s on w1.word = s.word and w1.type = s.type_word join words w2 on
+w2.word = s.synonym and w2.type = s.type_synonym
+group by w1.word, w1.type, w1.sentiment),
+
+std_deviation as(select av.word, av.type, av.sentiment, av.average_cluster_sentiment, 
+sum((w2.sentiment - av.average_cluster_sentiment)*(w2.sentiment - av.average_cluster_sentiment))/count(w2.sentiment) as st_dev
+from words w1 join issynonym s on w1.word = s.word and w1.type = s.type_word join words w2 on 
+w2.word = s.synonym and w2.type = s.type_synonym join average_calculation av on av.word = w1.word 
+and av.type = w1.type
+group by av.word, av.type, av.sentiment, av.average_cluster_sentiment)
+
+select s.word, s.type, s.sentiment, s.average_cluster_sentiment, s.st_dev, ((s.sentiment- s.average_cluster_sentiment)/sqrt(s.st_dev)) as
+zscore
+from std_deviation s
+where st_dev != 0 and ((s.sentiment- s.average_cluster_sentiment)/sqrt(s.st_dev)) >= -17503 and --restrizione valori per neo4j
+	((s.sentiment- s.average_cluster_sentiment)/sqrt(s.st_dev)) < 70506
+order by zscore desc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
