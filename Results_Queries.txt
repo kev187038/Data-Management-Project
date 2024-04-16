@@ -381,7 +381,7 @@ WITH w, COLLECT(s) as synonyms, AVG(s.sentiment) as avg_syn_sentiment
 WITH w, synonyms, avg_syn_sentiment,
     REDUCE (acc = 0, i IN RANGE(0, SIZE(synonyms) - 1) | acc + (synonyms[i].sentiment - avg_syn_sentiment)*(synonyms[i].sentiment - avg_syn_sentiment))/SIZE(synonyms) AS var
 WITH w, avg_syn_sentiment, SQRT(var) as stddev
-WHERE stddev <>  0
+WHERE NOT ABS(stddev) < 1e-10
 RETURN w, (w.sentiment - avg_syn_sentiment)/stddev AS zscore, stddev, avg_syn_sentiment
 ORDER BY zscore desc
 
@@ -394,20 +394,17 @@ w2.word = s.synonym and w2.type = s.type_synonym
 group by w1.word, w1.type, w1.sentiment),
 
 std_deviation as(select av.word, av.type, av.sentiment, av.average_cluster_sentiment, 
-sum((w2.sentiment - av.average_cluster_sentiment)*(w2.sentiment - av.average_cluster_sentiment))/count(w2.sentiment) as st_dev
+sqrt(sum((w2.sentiment - av.average_cluster_sentiment)*(w2.sentiment - av.average_cluster_sentiment))/count(w2.sentiment)) as st_dev
 from words w1 join issynonym s on w1.word = s.word and w1.type = s.type_word join words w2 on 
 w2.word = s.synonym and w2.type = s.type_synonym join average_calculation av on av.word = w1.word 
 and av.type = w1.type
 group by av.word, av.type, av.sentiment, av.average_cluster_sentiment)
 
-select s.word, s.type, s.sentiment, s.average_cluster_sentiment, s.st_dev, ((s.sentiment- s.average_cluster_sentiment)/sqrt(s.st_dev)) as
+select s.word, s.type, s.sentiment, s.average_cluster_sentiment, s.st_dev, ((s.sentiment- s.average_cluster_sentiment)/s.st_dev) as
 zscore
 from std_deviation s
-where st_dev != 0 and ((s.sentiment- s.average_cluster_sentiment)/sqrt(s.st_dev)) >= -17503 and --restrizione valori per neo4j
-	((s.sentiment- s.average_cluster_sentiment)/sqrt(s.st_dev)) < 70506
+where st_dev >= 1e-10
 order by zscore desc
-
-
 
 
 
