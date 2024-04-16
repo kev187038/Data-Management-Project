@@ -49,6 +49,7 @@ class Neo4jConnection:
             result = session.run(query)
             t2 = time()
             t = t2 - t1
+            print(len(list(result)))
             return t
 
 # Esecuzione della query in Neo4j
@@ -91,33 +92,36 @@ def getTimes(graph_query, relational_query, task, N):
     avg_graph_time = []
     avg_relational_time = []
     neo = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query, N, avg_graph_time))
-    pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N, avg_relational_time))
+    #pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N, avg_relational_time))
     neo.start()
-    pgsql.start()
+    #pgsql.start()
     neo.join()
-    pgsql.join()
+    #pgsql.join()
     #Estrazione risultati dai thread
     avg_graph_time = avg_graph_time[0]
-    avg_relational_time = avg_relational_time[0]
+    #avg_relational_time = avg_relational_time[0]
     # Confronto dei tempi medi delle query
     
-    if avg_graph_time < avg_relational_time:
-        percentage = (avg_graph_time / avg_relational_time)*100
-        print("Graph was faster than relational db.\n Graph avg time: " + str(avg_graph_time) + " seconds" + "\n Relational avg time: " + str(avg_relational_time) + " seconds")
-        print("Graph on average employed " + str(percentage) + "% of the time of the relational db\n\n")
-    else:
-        percentage = (avg_relational_time / avg_graph_time)*100
-        print("Relational db was faster than graph db.\n Graph avg time: " + str(avg_graph_time) + " seconds" + "\n Relational avg time: " + str(avg_relational_time) + " seconds")
-        print("Relational db on average employed " + str(percentage) + "% of the time of the graph db\n\n")
-    #Automated result registration
+    #if avg_graph_time < avg_relational_time:
+    #    percentage = (avg_graph_time / avg_relational_time)*100
+    #    print("Graph was faster than relational db.\n Graph avg time: " + str(avg_graph_time) + " seconds" + "\n Relational avg time: " + str(avg_relational_time) + " seconds")
+    #    print("Graph on average employed " + str(percentage) + "% of the time of the relational db\n\n")
+    #else:
+    #    percentage = (avg_relational_time / avg_graph_time)*100
+    #    print("Relational db was faster than graph db.\n Graph avg time: " + str(avg_graph_time) + " seconds" + "\n Relational avg time: " + str(avg_relational_time) + " seconds")
+    #    print("Relational db on average employed " + str(percentage) + "% of the time of the graph db\n\n")
+    ##Automated result registration
     with open('./query_times.txt', 'a') as file:
-    	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: {avg_relational_time}\n")
+    	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: \n")
   
     
 # Lettura delle query dal file
-relational_queries = readQueriesFromFile("relational_queries.txt")
-graph_queries = readQueriesFromFile("graph_queries.txt")
-N = 2 #number of times we repeat the execution of the query
+relational_queries = [""]
+graph_queries = [" \
+MATCH (w:Word{word:\"punish\"})-[:IsHypernym*1..]->(s:Word) \
+WITH (COUNT(DISTINCT s)) AS c, w \
+RETURN w, c"]
+N = 1 #number of times we repeat the execution of the query
 
 for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
