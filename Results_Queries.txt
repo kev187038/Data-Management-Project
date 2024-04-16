@@ -30,7 +30,7 @@ synonym 514 msec
 antonyms 300 msec
 hypernyms 500 msec
 
---------------------------- Words with synonyms words per count
+--------------------------- Words with synonyms words per count TASK 1
 relational 2000 msec, graph 859 msec
 
 RELATIONAL QUERY
@@ -54,7 +54,7 @@ return avg(sentiment), numSyn
 1000 msec circa
 
 
----------------------Hypernyms depth 3 without sentiment
+---------------------Hypernyms depth 3 without sentiment 
 
 RELATIONAL QUERY
 7:46 minutes
@@ -88,7 +88,7 @@ WITH (COUNT(DISTINCT s)) AS c, w
 ORDER BY c DESC
 RETURN w, c 
 
------------------------------Hypernym sentiment evolution with path depth 3 to get the average sentiment of hyponyms compared to the respective hypernym
+-----------------------------Hypernym sentiment evolution with path depth 3 to get the average sentiment of hyponyms compared to the respective hypernym TASK 2
 GRAPH 28.83 seconds
 
 RELATIONAL QUERY
@@ -130,7 +130,7 @@ WITH w, COLLECT(DISTINCT s) as unique_s
 UNWIND unique_s AS s
 RETURN w, AVG(s.sentiment)
 
-----------------------------------Antonyms with max sentiment difference and take the synonyms of this antonyms such that the sentiment difference between these differences is minimal 
+----------------------------------TASK 3 Antonyms with max sentiment difference and take the synonyms of this antonyms such that the sentiment difference between these differences is minimal 
 and greater than zero (between the sentiments of the two antonyms separated). 
 We look for the "political words" defined as: two political words p1 and p2 are such if they are synonyms of antynoms a1 and a2 where a1 is antonym of a2 and the difference of 
 sentiment between p1 and p2 is minimal throughout all possible such synonyms. 
@@ -191,7 +191,7 @@ WITH minDiff.pol1 AS pol1, minDiff.pol2 AS pol2, ant1, ant2, Round(abs(minDiff.p
 WHERE difference >= 1e-5    
 RETURN pol1, pol2, ant1, ant2, difference
 
-####################################################
+###################################################
 Clustering coefficient of a node, the node with the most number of synonyms
 
 GRAPH
@@ -249,7 +249,7 @@ and s3.synonym = s1.word and s3.type_synonym = s1.type_word
 group by s1.word, s1.type_word, countsyn.numsyn
 order by clusterCoefficient desc
 
-####### AVERAGE CLUSTERING COEFFICIENT
+####### AVERAGE CLUSTERING COEFFICIENT (GRAPH CC) TASK 5
 
 graph cc = 0.5458799
 
@@ -284,7 +284,7 @@ from clustering_coefficients as cc
 
 time = 12,69 sec
 
-######################## Similarity percentages between sentiment and synonyms 
+######################## Similarity percentages between sentiment and synonyms TASK 5
 
 The average percentage of similar sentiments for synonym relationships is 0.785 for a threshold value of 0.1 in sentiment difference
 The average percentage of similar sentiments for synonym relationships is 0.686 for a threshold value of 0.01 in sentiment difference
@@ -332,7 +332,7 @@ RETURN AVG(similarity)
 
 time ~= 1.1 sec
 
-##################################Sentiment correlation with words length
+##################################Sentiment correlation with words length TASK 6
 
 Words seem to have a gaussian distribution on the number based on the length (peak at length 8), words with _ were excluded and do graphs later for slides
 
@@ -352,9 +352,12 @@ MATCH (w)
 WHERE NOT w.word CONTAINS '_'
 RETURN SIZE(w.word) AS length, COUNT(w) as num_words, AVG(w.sentiment) as mean_sentiment
 
-#####################################Zeta Score of synonym sentiment
+#####################################Zeta Score of synonym sentiment TASK 7
 
 --AUTOCORRELATION
+
+GRAPH 
+
 MATCH (w)-[:IsSynonym]->(s)
 WITH w, COLLECT(s) + [w] as cluster
 WITH w, cluster,
