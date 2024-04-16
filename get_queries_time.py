@@ -3,6 +3,7 @@ import neo4j
 import re
 import threading
 from time import time
+import sys
 # Connessione al database PostgreSQL
 def connectToPostgresql():
     conn = psycopg2.connect(
@@ -12,23 +13,27 @@ def connectToPostgresql():
     return conn
 
 # Esecuzione della query in PostgreSQL ed estrazione dei tempi medi di querying
-def executePostgresqlQueryNTimes(query, N):
-   
-    result = 0
-    for i in range(N):
-    	conn = connectToPostgresql()
-    	cur = conn.cursor()
-    	t1 = time()
-    	cur.execute(query)
-    	t2 = time()
-    	t = t2 - t1
-    	result += t
-    	cur.close()  ##Close connection to avoid caching (?)
-    	conn.close() ##
-    
-    result = result/N
-    
-    return result
+def executePostgresqlQueryNTimes(query, N, avg):
+    try:
+	    result = 0
+	    for i in range(N):
+	    	conn = connectToPostgresql()
+	    	cur = conn.cursor()
+	    	t1 = time()
+	    	print(f"PG ADMIN DOING QUERY {i+1}")
+	    	cur.execute(query)	
+	    	print(f"PG ADMIN DONE QUERY {i+1}")
+	    	t2 = time()
+	    	t = t2 - t1
+	    	result += t
+	    	cur.close()  ##Close connection to avoid caching (?)
+	    	conn.close() ##
+	    
+	    avg.append(result/N)
+	    
+    except Exception as e:
+    	print(e)
+    	sys.exit(1)
 
 # Connessione al database Neo4j
 class Neo4jConnection:
@@ -47,16 +52,22 @@ class Neo4jConnection:
             return t
 
 # Esecuzione della query in Neo4j
-def execute_neo4j_queryNTimes(query, N):
-    result = 0
-    for i in range(N):
-    	#Each time we open and close connection to try avoid caching
-    	neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", "words-graph")
-    	time = neo4j_conn.runQuery(query)
-    	neo4j_conn.close()
-    	result += time
-    result = result/N
-    return result
+def execute_neo4j_queryNTimes(query, N, avg):
+    try:
+	    result = 0
+	    for i in range(N):
+	    	#Each time we open and close connection to try avoid caching
+	    	neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", "words-graph")
+	    	print(f"NEO DOING QUERY {i+1}")
+	    	time = neo4j_conn.runQuery(query)
+	    	print(f"NEO DONE QUERY {i+1}")
+	    	neo4j_conn.close()
+	    	result += time
+	    avg.append(result/N)
+	    
+    except Exception as e:
+    	print(e)
+    	sys.exit(1)
     
 # Funzione per leggere le query da un file
 def readQueriesFromFile(file_path):
@@ -77,33 +88,36 @@ def readQueriesFromFile(file_path):
     
 def getTimes(graph_query, relational_query, task, N):
     #Thread separati per neo4j e pgadmin4 
-    neo = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query, N))
-    pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N))
+    avg_graph_time = []
+    avg_relational_time = []
+    neo = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query, N, avg_graph_time))
+    pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N, avg_relational_time))
     neo.start()
     pgsql.start()
     neo.join()
     pgsql.join()
-    # Esecuzione e confronto dei tempi medi delle query
-    avg_graph_time = neo.result
-    avg_relational_time = pgsql.result
+    #Estrazione risultati dai thread
+    avg_graph_time = avg_graph_time[0]
+    avg_relational_time = avg_relational_time[0]
+    # Confronto dei tempi medi delle query
     
     if avg_graph_time < avg_relational_time:
-    	percentage = (avg_relational_time*100) / avg_graph_time
-    	print("Graph was faster than relational db.\n Graph avg time: " + str(avg_graph_time) + "\n Relational avg time: " + str(avg_relational_time))
+    	percentage = (avg_graph_time / avg_relational_time)*100
+    	print("Graph was faster than relational db.\n Graph avg time: " + str(avg_graph_time) + " seconds" + "\n Relational avg time: " + str(avg_relational_time) + " seconds")
     	print("Graph on average employed " + str(percentage) + "% of the time of the relational db\n\n")
     else:
-    	percentage = (avg_graph_time*100) / avg_relational_time
-    	print("Relational db was faster than graph db.\n Graph avg time: " + str(avg_graph_time) + "\n Relational avg time: " + str(avg_relational_time))
+    	percentage = (avg_relational_time / avg_graph_time)*100
+    	print("Relational db was faster than graph db.\n Graph avg time: " + str(avg_graph_time) + " seconds" + "\n Relational avg time: " + str(avg_relational_time) + " seconds")
     	print("Relational db on average employed " + str(percentage) + "% of the time of the graph db\n\n")
     #Automated result registration
-    with open('./query_times.txt', 'w') as file:
-    	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: {avg_relational_time}")
+    with open('./query_times.txt', 'a') as file:
+    	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: {avg_relational_time}\n")
   
     
 # Lettura delle query dal file
 relational_queries = readQueriesFromFile("relational_queries.txt")
 graph_queries = readQueriesFromFile("graph_queries.txt")
-N = 30 #number of times we repeat the execution of the query
+N = 2 #number of times we repeat the execution of the query
 
 for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
