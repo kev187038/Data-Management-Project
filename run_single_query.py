@@ -49,7 +49,9 @@ class Neo4jConnection:
             result = session.run(query)
             t2 = time()
             t = t2 - t1
+            print(list(result))
             print(len(list(result)))
+
             return t
 
 # Esecuzione della query in Neo4j
@@ -117,14 +119,16 @@ def getTimes(graph_query, relational_query, task, N):
     
 # Lettura delle query dal file
 relational_queries = [""]
-graph_queries = [" \
-MATCH (w:Word{word:\"punish\"})-[:IsHypernym*1..]->(s:Word) \
-WITH (COUNT(DISTINCT s)) AS c, w \
-RETURN w, c"]
+graph_queries = ["MATCH path = shortestPath((w:Word{word:\"punish\"})-[:IsHypernym*1..]->(s:Word)) \
+WHERE NOT w = s \
+RETURN w AS hypernym, COLLECT([s, LENGTH(path)]) AS transitive_closure \
+ORDER BY SIZE(transitive_closure) DESC \
+"]
 N = 1 #number of times we repeat the execution of the query
 
 for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
     print('Dealing with Task', task)
     getTimes(graph_queries[i], relational_queries[i], task, N) 
+    break
     

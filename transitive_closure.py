@@ -1,6 +1,6 @@
 import neo4j
 from time import time
-
+from tqdm import tqdm
 # Connessione al database Neo4j
 class Neo4jConnection:
     def __init__(self, uri, user, password, db_name):
@@ -33,35 +33,16 @@ def getResults(graph_query, params = None):
     return tuples
 
 
-dic = {}
-nodes = getResults("MATCH (n) RETURN n;")
 #print(nodes)
 
-class Counter:
-    def __init__(self):
-        self.value = 0
-
-    def increment(self):
-        self.value += 1
-
-    def getValue(self):
-        return self.value
-
-# Creazione di un'istanza della classe Counter
-counter = Counter()
-
-def transitive_closure(node,counter):
+def transitive_closure(node):
     hyponyms = getResults("MATCH (n {word: $word, type: $type})-[:IsHypernym]->(m) RETURN m;", {"word": node[0], "type": node[1]})
     
     #base case: return the dictionary of reachables  
     if node in dic.keys():
         return dic[node]
     #initialize reachable dictionary
-    #print('execution', counter.getValue())
-    counter.increment()
-    if counter.getValue() % 10 == 0:
-        print(counter.getValue()/len(nodes)*100,'%')
-
+    #print('execution')
     dic[node] = {}
 
     if len(hyponyms) > 0:
@@ -70,7 +51,7 @@ def transitive_closure(node,counter):
             dic[node][hyp] =  1
             #if I already know reachables from the hyponym
             if hyp not in dic.keys():
-                dic[hyp] = transitive_closure(hyp, counter)
+                dic[hyp] = transitive_closure(hyp)
 
             for rag in dic[hyp]:
                     #check whether information about the reachable is already present
@@ -81,10 +62,19 @@ def transitive_closure(node,counter):
     #print(node, dic[node])
     return dic[node]
 
+
+dic = {}
+base_hypons = getResults("MATCH (n) WHERE NOT (n)-[:IsHypernym]->() RETURN DISTINCT n;")
+hypernyms = getResults("MATCH (n)-[:IsHypernym]->(m) WITH n, COUNT(m) as num_hyp ORDER BY num_hyp RETURN n;")
 t1 = time()
-for node in nodes:
-    if node not in dic.keys():
-        dic[node] = transitive_closure(node, counter)
+
+for hypon in tqdm(base_hypons):
+    dic[hypon] = {}
+
+for hyper in tqdm(hypernyms):
+    if hyper not in dic.keys():
+        dic[hyper] = transitive_closure(hyper)
+
 t2 = time()
 print(dic)
 print(t2 - t1)
