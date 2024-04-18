@@ -409,14 +409,72 @@ from std_deviation s
 where st_dev >= 1e-10
 order by zscore desc
 
+#############################TASK 8   Similarity coefficient
+Defined as the average difference in sentiment between a word and its neighbours (synonyms) and  the average difference in sentiment between the word
+and every non synonym
+
+GRAPH
+
+MATCH (w)-[:IsSynonym]->(s)
+WITH w, AVG(ABS(w.sentiment - s.sentiment)) AS syn_avg
+MATCH (ns)
+WHERE NOT (w)-[:IsSynonym]->(ns)
+WITH w, syn_avg, AVG(ABS(w.sentiment - ns.sentiment)) AS non_syn_avg
+RETURN w, syn_avg/non_syn_avg AS similarity_coefficient
+
+RELATIONAL
+
+with avg_syn as (select w1.word, w1.type, avg(w1.sentiment - w2.sentiment) as average_syn
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2
+	on w2.word = s1.synonym and w2.type = s1.type_synonym
+group by (w1.word, w1.type)),
+
+avg_non_syn as(
+	select w1.word, w1.type, avg(w1.sentiment-w2.sentiment) as avg_nonsyn
+	from words w1 join words w2 on w1.word != w2.word and w1.type != w2.type
+	where (w2.word, w2.type) not in (
+		select s.synonym, s.type_synonym
+		from issynonym s 
+		where s.word = w1.word and s.type_word = w1.type
+	)
+	group by w1.word, w1.type
+)
+select avg_syn.word, avg_syn.type, (average_syn / avg_nonsyn) as similarity_coefficient
+from avg_syn join avg_non_syn on avg_syn.word = avg_non_syn.word and avg_syn.type = avg_non_syn.type
 
 
+##################################################################SEMANTIC FIELD CALCULATION TASK 9
 
+RELATIONAL
 
+with r as (select hypernym as word, type_hypernym as type
+from ishypernym join issynonym on issynonym.word = hypernym and issynonym.type_word = type_hypernym
+except
+select w.hypernym, w.type_hypernym
+from ishypernym w join ishypernym h on w.hypernym = h.hyponym and w.type_hypernym = h.type_hyponym
+),
 
+semanticFields as (select r.word, r.type, hyponym as inSemField, type_hyponym as inSemFieldType
+from r join ishypernym on r.word = hypernym and r.type = type_hypernym
+union
+select r.word, r.type, synonym as inSemField, type_synonym as inSemFieldType
+from r join issynonym s on r.word = s.word  and r.type = s.type_word)
 
+select word, type, string_agg(concat(concat(concat(inSemField, '('), inSemFieldType), ')'), ', ') as SemanticField
+from semanticFields
+group by word, type
+order by word
 
+GRAPH
 
+MATCH (w)-[:IsSynonym]->(s) 
+WHERE NOT ()-[:IsHypernym]->(w)
+WITH w, COLLECT(s) AS syns
+MATCH (w)-[:IsHypernym]->(h)
+WHERE NOT h IN syns
+WITH w, syns, COLLECT(h) AS hypernyms
+RETURN w, syns + hypernyms AS semantic_field
+ORDER BY w.word
 
 
 
