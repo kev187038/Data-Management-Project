@@ -49,9 +49,11 @@ class Neo4jConnection:
             result = session.run(query)
             t2 = time()
             t = t2 - t1
-            print(list(result))
-            print(len(list(result)))
-
+            result = list(result)
+            for r in result:
+                print(r)
+            print(len(result))
+            print(t)
             return t
 
 # Esecuzione della query in Neo4j
@@ -100,7 +102,8 @@ def getTimes(graph_query, relational_query, task, N):
     neo.join()
     #pgsql.join()
     #Estrazione risultati dai thread
-    avg_graph_time = avg_graph_time[0]
+   # avg_graph_time = avg_graph_time[0]
+   # print('time: ', avg_graph_time)
     #avg_relational_time = avg_relational_time[0]
     # Confronto dei tempi medi delle query
     
@@ -119,7 +122,7 @@ def getTimes(graph_query, relational_query, task, N):
     
 # Lettura delle query dal file
 relational_queries = [""]
-graph_queries = ["MATCH path = shortestPath((w:Word{word:\"punish\"})-[:IsHypernym*1..]->(s:Word)) \
+graph_queries = ["MATCH path = shortestPath((w:Word)-[:IsHypernym*1..]->(s:Word)) \
 WHERE NOT w = s \
 RETURN w AS hypernym, COLLECT([s, LENGTH(path)]) AS transitive_closure \
 ORDER BY SIZE(transitive_closure) DESC \
