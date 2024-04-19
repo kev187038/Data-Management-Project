@@ -14,3 +14,27 @@ Avg relational time:
 Task 1
 Avg graph time: []
 Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 

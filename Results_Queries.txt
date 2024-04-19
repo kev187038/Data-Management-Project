@@ -476,13 +476,53 @@ WITH w, syns, COLLECT(h) AS hyponyms
 RETURN w, syns + hyponyms AS semantic_field
 ORDER BY w.word
 
+################################ TASK 10 Find Multi morphological words (words that appear with all types)
 
+GRAPH
 
+MATCH (w)
+WITH w
+ORDER BY w.type
+WITH COLLECT(DISTINCT w.type) AS types
+MATCH (w)
+WITH w, types
+ORDER BY w.type
+WITH w.word AS word, COLLECT(w.type) AS wtypes, types 
+WHERE wtypes = types
+RETURN word
 
+RELATIONAL 
 
+select w1.word
+from words w1  
+group by w1.word
+having count(w1.type) = (select count(distinct type)
+	from words
+	)
 
+############################### TASK 11 Find words whose synonyms cover all types (multi semantic)
 
+GRAPH
 
+MATCH (w)
+WITH w
+ORDER BY w.type
+WITH COLLECT(DISTINCT w.type) AS types
+MATCH (w)-[:IsSynonym]->(s)
+WITH w, s, types
+ORDER BY s.type
+WITH w, COLLECT(DISTINCT s.type) AS stypes, types 
+WHERE stypes = types
+RETURN w
+
+RELATIONAL
+
+select w1.word, w1.type
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word
+group by w1.word, w1.type
+having count(distinct type_synonym) = (select count(distinct type)
+	from words
+	)
 
 
 

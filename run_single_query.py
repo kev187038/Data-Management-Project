@@ -54,6 +54,7 @@ class Neo4jConnection:
                 print(r)
             print(len(result))
             print(t)
+
             return t
 
 # Esecuzione della query in Neo4j
