@@ -472,8 +472,8 @@ WHERE NOT ()-[:IsHypernym]->(w)
 WITH w, COLLECT(s) AS syns
 MATCH (w)-[:IsHypernym]->(h)
 WHERE NOT h IN syns
-WITH w, syns, COLLECT(h) AS hypernyms
-RETURN w, syns + hypernyms AS semantic_field
+WITH w, syns, COLLECT(h) AS hyponyms
+RETURN w, syns + hyponyms AS semantic_field
 ORDER BY w.word
 
 ################################ TASK 10 Find Multi morphological words (words that appear with all types)
