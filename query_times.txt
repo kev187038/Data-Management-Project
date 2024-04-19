@@ -17,3 +17,27 @@ Task 1
 Avg graph time: []
 >>>>>>> fda13c438e4f576267a3f933934980b81eeb550f
 Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
+Task 1
+Avg graph time: []
+Avg relational time: 
