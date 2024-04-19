@@ -49,19 +49,11 @@ class Neo4jConnection:
             result = session.run(query)
             t2 = time()
             t = t2 - t1
-<<<<<<< HEAD
-            l = list(result)
-            for i in l:
-            	print("Tuple: ", i)
-            print("Num tuples is: ",len(list(result)))
-
-=======
             result = list(result)
             for r in result:
                 print(r)
             print(len(result))
             print(t)
->>>>>>> fda13c438e4f576267a3f933934980b81eeb550f
             return t
 
 # Esecuzione della query in Neo4j
