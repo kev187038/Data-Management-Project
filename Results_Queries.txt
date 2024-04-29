@@ -54,7 +54,7 @@ return avg(sentiment), numSyn
 1000 msec circa
 
 
----------------------Hypernyms depth 3 without sentiment 
+---------------------Hypernyms depth 3 without sentiment PROTOTYPE TASK 2
 
 RELATIONAL QUERY
 7:46 minutes

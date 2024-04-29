@@ -117,10 +117,17 @@ def getTimes(graph_query, relational_query, task, N):
 # Lettura delle query dal file
 relational_queries = readQueriesFromFile("relational_queries.txt")
 graph_queries = readQueriesFromFile("graph_queries.txt")
-N = 2 #number of times we repeat the execution of the query
+
+#N should normally be 100
+#Repetitions vary for each task (we cannot repeat a 1 hour task 100 times!)
+    # T1  T2 T3   T4  T5   T6   T7  T9  T10  T11
+N = [100, 5, 100, 70, 100, 100, 50, 50, 100, 100] #number of times we repeat the execution of the query
 
 for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
+    if task == 8:
+    	#We jump task 8 since it's too long (cartesian product)
+    	task += 1
     print('Dealing with Task', task)
-    getTimes(graph_queries[i], relational_queries[i], task, N) 
+    getTimes(graph_queries[i], relational_queries[i], task, N[i]) 
     
