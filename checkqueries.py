@@ -86,9 +86,9 @@ def getResults(graph_query, relational_query, task):
 
 
 def compareResults(rel, gr):
-    #if (len(rel) != len(gr)):
-    #     print('The number of records returned is different')
-    #    return False
+    if (len(rel) != len(gr)):
+        print('The number of records returned is different')
+        return False
     for i in range(len(rel)):
         tup_rel = rel[i]
         tup_gr = gr[i]
