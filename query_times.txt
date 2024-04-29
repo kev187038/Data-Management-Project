@@ -1,0 +1,3 @@
+Task 1
+Avg graph time: 0.00963184356689453
+Avg relational time: 0.9245907664299011

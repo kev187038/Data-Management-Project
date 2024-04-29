@@ -22,7 +22,7 @@ def executePostgresqlQueryNTimes(query, N, avg):
             t1 = time()
             print(f"PG ADMIN DOING QUERY {i+1}")
             cur.execute(query)	
-            print(f"PG ADMIN DONE QUERY {i+1}")
+            #print(f"PG ADMIN DONE QUERY {i+1}")
             t2 = time()
             t = t2 - t1
             result += t
@@ -60,7 +60,7 @@ def execute_neo4j_queryNTimes(query, N, avg):
             neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", "words-graph")
             print(f"NEO DOING QUERY {i+1}")
             time = neo4j_conn.runQuery(query)
-            print(f"NEO DONE QUERY {i+1}")
+            #print(f"NEO DONE QUERY {i+1}")
             neo4j_conn.close()
             result += time
         avg.append(result/N)
@@ -117,17 +117,14 @@ def getTimes(graph_query, relational_query, task, N):
 # Lettura delle query dal file
 relational_queries = readQueriesFromFile("relational_queries.txt")
 graph_queries = readQueriesFromFile("graph_queries.txt")
-
 #N should normally be 100
 #Repetitions vary for each task (we cannot repeat a 1 hour task 100 times!)
-    # T1  T2 T3   T4  T5   T6   T7  T9  T10  T11
-N = [100, 5, 100, 70, 100, 100, 50, 50, 100, 100] #number of times we repeat the execution of the query
+    # T1  T2 T3   T4  T5   T6   T7  T8  T9  T10 
+N = [100, 5, 100, 70, 100, 100, 50, 100, 50, 100] #number of times we repeat the execution of the query
 
 for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
-    if task == 8:
-    	#We jump task 8 since it's too long (cartesian product)
-    	task += 1
+
     print('Dealing with Task', task)
     getTimes(graph_queries[i], relational_queries[i], task, N[i]) 
     

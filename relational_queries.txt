@@ -1,4 +1,11 @@
 ############################################# Task1
+with countsyn as (select count(synonym) as c, words.word, words.type, words.sentiment
+from issynonym right join words on words.word = issynonym.word and words.type = issynonym.type_word
+group by words.word, words.type, words.sentiment)
+select avg(sentiment), c
+from countsyn
+group by c;
+############################################# Task2
 with hypernyms_till_depth_three as (
 select h1.hypernym, h1.type_hypernym, h1.hyponym, h1.type_hyponym
 from ishypernym h1
@@ -15,18 +22,11 @@ from ishypernym h1
      join ishypernym h3
      on h2.hyponym = h3.hypernym and h2.type_hyponym = h3.type_hypernym 
 )
-select hyper.word, hyper.type, hyper.sentiment, avg(hypon.sentiment)
-from words hyper join hypernyms_till_depth_three h1
-     on hyper.word = h1.hypernym and hyper.type = h1.type_hypernym
-     join words hypon 
-     on hypon.word = h1.hyponym and hypon.type = h1.type_hyponym
-where (hyper.word, hyper.type) in (select hypernym, type_hypernym
-                                   from (select hypernym, type_hypernym, count((hyponym, type_hyponym)) as c
-                                         from hypernyms_till_depth_three
-                                         group by hypernym, type_hypernym) as counter
-                                   where c > 20000)
-group by hyper.word, hyper.type, hyper.sentiment;
-############################################# Task2
+select hypernym, type_hypernym, count(distinct(hyponym, type_hyponym))
+from hypernyms_till_depth_three
+group by hypernym, type_hypernym
+order by count desc;
+############################################ Task3
 with distant_antonyms as (
 select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym
 from words w1 join isantonym a
@@ -47,6 +47,8 @@ from words pol1 join issynonym s1 on
      on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
      join words pol2 
      on pol2.word = s2.word and pol2.type = s2.type_word
+-- maybe here there should be a where clause
+-- where abs(pol1.sentiment - pol2.sentiment) > 0
 )
 select pol1, type_pol1, pol2, type_pol2, ant1, type_ant1, ant2, type_ant2, abs(sent_pol1 - sent_pol2) as difference
 from political_pairs as pp
@@ -55,3 +57,96 @@ where abs(sent_pol1 - sent_pol2) <= all(select abs(sent_pol1 - sent_pol2)
 							where pp.ant1 = pp2.ant1 and pp.type_ant1 = pp2.type_ant1 and pp.ant2 = pp2.ant2 
 									and pp.type_ant2 = pp2.type_ant2
 							) and abs(sent_pol1 - sent_pol2) > 0;
+########################################### Task4
+with countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
+from issynonym s1 
+group by word, type_word),
+clustering_coefficients as (select s1.word, s1.type_word, countsyn.numsyn,
+	cast(count((s2.word, s2.type_word)) as float)/(countsyn.numsyn*countsyn.numsyn) as clusterCoefficient
+from countsyn join issynonym s1 on countsyn.word = s1.word and countsyn.type_word = s1.type_word 
+join issynonym s2 on s2.word = s1.synonym and s2.type_word = s1.type_synonym
+join issynonym s3 on s3.word = s2.synonym and s3.type_word = s2.type_synonym
+and s3.synonym = s1.word and s3.type_synonym = s1.type_word
+group by s1.word, s1.type_word, countsyn.numsyn)
+select avg(clusterCoefficient) as Average_CC
+from clustering_coefficients as cc;
+########################################## Task5
+with countSyn as (select count((synonym, type_synonym)) as count_tot, words.word as word, words.type as type
+from words join issynonym on words.word = issynonym.word and words.type = issynonym.type_word
+group by words.word, words.type
+),
+
+
+countSent as ( select w1.word as word, w1.type as type, count((w2.word, w2.type)) as countSent
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2 on w2.word = s1.synonym and
+w2.type = s1.type_synonym 
+where abs(w1.sentiment - w2.sentiment) < 0.1
+group by (w1.word, w1.type)
+union
+select w1.word as word, w1.type as type, 0 as countSent
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2 on w2.word = s1.synonym and
+w2.type = s1.type_synonym 
+where (w1.word, w1.type) not in (select w1.word as word, w1.type as type
+	from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2 on w2.word = s1.synonym and
+	w2.type = s1.type_synonym 
+	where abs(w1.sentiment - w2.sentiment) < 0.1
+	) 
+),
+results as (select csyn.word, csyn.type, (cast(csen.countSent as float)/csyn.count_tot) as percentage
+from countSyn csyn join countsent csen on csyn.word = csen.word and csyn.type = csen.type)
+select avg(percentage) as Average_percentage
+from results;
+########################################## Task6
+with words_with_len as (select LENGTH(word) as Length, word, words.type as type, sentiment
+from words
+where word not like '%\_%')
+select Length, avg(sentiment), count((word, type)) as Num_words
+from words_with_len
+group by Length
+########################################## Task7
+with average_calculation as (select w1.word, w1.type, w1.sentiment, avg(w2.sentiment)
+as average_cluster_sentiment
+from words w1 join issynonym s on w1.word = s.word and w1.type = s.type_word join words w2 on
+w2.word = s.synonym and w2.type = s.type_synonym
+group by w1.word, w1.type, w1.sentiment),
+std_deviation as(select av.word, av.type, av.sentiment, av.average_cluster_sentiment, 
+sqrt(sum((w2.sentiment - av.average_cluster_sentiment)*(w2.sentiment - av.average_cluster_sentiment))/count(w2.sentiment)) as st_dev
+from words w1 join issynonym s on w1.word = s.word and w1.type = s.type_word join words w2 on 
+w2.word = s.synonym and w2.type = s.type_synonym join average_calculation av on av.word = w1.word 
+and av.type = w1.type
+group by av.word, av.type, av.sentiment, av.average_cluster_sentiment)
+select s.word, s.type, s.sentiment, s.average_cluster_sentiment, s.st_dev, ((s.sentiment- s.average_cluster_sentiment)/s.st_dev) as
+zscore
+from std_deviation s
+where st_dev >= 1e-10
+order by zscore desc;
+######################################### Task8
+select w1.word, w1.type
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word
+group by w1.word, w1.type
+having count(distinct type_synonym) = (select count(distinct type)
+	from words
+	);
+######################################### Task9
+with r as (select hypernym as word, type_hypernym as type
+from ishypernym join issynonym on issynonym.word = hypernym and issynonym.type_word = type_hypernym
+except
+select w.hypernym, w.type_hypernym
+from ishypernym w join ishypernym h on w.hypernym = h.hyponym and w.type_hypernym = h.type_hyponym
+),
+semanticFields as (select r.word, r.type, hyponym as inSemField, type_hyponym as inSemFieldType
+from r join ishypernym on r.word = hypernym and r.type = type_hypernym
+union
+select r.word, r.type, synonym as inSemField, type_synonym as inSemFieldType
+from r join issynonym s on r.word = s.word  and r.type = s.type_word)
+select word, type, string_agg(concat(concat(concat(inSemField, '('), inSemFieldType), ')'), ', ') as SemanticField
+from semanticFields
+group by word, type
+order by word;
+######################################### Task10
+select w1.word
+from words w1  
+group by w1.word
+having count(w1.type) = (select count(distinct type)
+	from words
+	);

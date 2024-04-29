@@ -249,7 +249,7 @@ and s3.synonym = s1.word and s3.type_synonym = s1.type_word
 group by s1.word, s1.type_word, countsyn.numsyn
 order by clusterCoefficient desc
 
-####### AVERAGE CLUSTERING COEFFICIENT (GRAPH CC) TASK 5
+####### AVERAGE CLUSTERING COEFFICIENT (GRAPH CC) TASK 4
 
 graph cc = 0.5458799
 
@@ -409,39 +409,29 @@ from std_deviation s
 where st_dev >= 1e-10
 order by zscore desc
 
-#############################TASK 8   Similarity coefficient
-Defined as the average difference in sentiment between a word and its neighbours (synonyms) and  the average difference in sentiment between the word
-and every non synonym
+############################### TASK 8 Find words whose synonyms cover all types (multi semantic)
 
 GRAPH
 
+MATCH (w)
+WITH w
+ORDER BY w.type
+WITH COLLECT(DISTINCT w.type) AS types
 MATCH (w)-[:IsSynonym]->(s)
-WITH w, AVG(ABS(w.sentiment - s.sentiment)) AS syn_avg
-MATCH (ns)
-WHERE NOT (w)-[:IsSynonym]->(ns)
-WITH w, syn_avg, AVG(ABS(w.sentiment - ns.sentiment)) AS non_syn_avg
-RETURN w, syn_avg/non_syn_avg AS similarity_coefficient
+WITH w, s, types
+ORDER BY s.type
+WITH w, COLLECT(DISTINCT s.type) AS stypes, types 
+WHERE stypes = types
+RETURN w
 
 RELATIONAL
 
-with avg_syn as (select w1.word, w1.type, avg(w1.sentiment - w2.sentiment) as average_syn
-from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2
-	on w2.word = s1.synonym and w2.type = s1.type_synonym
-group by (w1.word, w1.type)),
-
-avg_non_syn as(
-	select w1.word, w1.type, avg(w1.sentiment-w2.sentiment) as avg_nonsyn
-	from words w1 join words w2 on w1.word != w2.word and w1.type != w2.type
-	where (w2.word, w2.type) not in (
-		select s.synonym, s.type_synonym
-		from issynonym s 
-		where s.word = w1.word and s.type_word = w1.type
+select w1.word, w1.type
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word
+group by w1.word, w1.type
+having count(distinct type_synonym) = (select count(distinct type)
+	from words
 	)
-	group by w1.word, w1.type
-)
-select avg_syn.word, avg_syn.type, (average_syn / avg_nonsyn) as similarity_coefficient
-from avg_syn join avg_non_syn on avg_syn.word = avg_non_syn.word and avg_syn.type = avg_non_syn.type
-
 
 ##################################################################SEMANTIC FIELD CALCULATION TASK 9
 
@@ -500,30 +490,39 @@ having count(w1.type) = (select count(distinct type)
 	from words
 	)
 
-############################### TASK 11 Find words whose synonyms cover all types (multi semantic)
+
+#############################TASK 11   Similarity coefficient
+Defined as the average difference in sentiment between a word and its neighbours (synonyms) and  the average difference in sentiment between the word
+and every non synonym
 
 GRAPH
 
-MATCH (w)
-WITH w
-ORDER BY w.type
-WITH COLLECT(DISTINCT w.type) AS types
 MATCH (w)-[:IsSynonym]->(s)
-WITH w, s, types
-ORDER BY s.type
-WITH w, COLLECT(DISTINCT s.type) AS stypes, types 
-WHERE stypes = types
-RETURN w
+WITH w, AVG(ABS(w.sentiment - s.sentiment)) AS syn_avg
+MATCH (ns)
+WHERE NOT (w)-[:IsSynonym]->(ns)
+WITH w, syn_avg, AVG(ABS(w.sentiment - ns.sentiment)) AS non_syn_avg
+RETURN w, syn_avg/non_syn_avg AS similarity_coefficient
 
 RELATIONAL
 
-select w1.word, w1.type
-from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word
-group by w1.word, w1.type
-having count(distinct type_synonym) = (select count(distinct type)
-	from words
-	)
+with avg_syn as (select w1.word, w1.type, avg(w1.sentiment - w2.sentiment) as average_syn
+from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word join words w2
+	on w2.word = s1.synonym and w2.type = s1.type_synonym
+group by (w1.word, w1.type)),
 
+avg_non_syn as(
+	select w1.word, w1.type, avg(w1.sentiment-w2.sentiment) as avg_nonsyn
+	from words w1 join words w2 on w1.word != w2.word and w1.type != w2.type
+	where (w2.word, w2.type) not in (
+		select s.synonym, s.type_synonym
+		from issynonym s 
+		where s.word = w1.word and s.type_word = w1.type
+	)
+	group by w1.word, w1.type
+)
+select avg_syn.word, avg_syn.type, (average_syn / avg_nonsyn) as similarity_coefficient
+from avg_syn join avg_non_syn on avg_syn.word = avg_non_syn.word and avg_syn.type = avg_non_syn.type
 
 
 
