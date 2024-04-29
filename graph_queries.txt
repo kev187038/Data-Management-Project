@@ -8,11 +8,6 @@ WITH (COUNT(DISTINCT s)) AS c, w
 ORDER BY c DESC
 RETURN w, c;
 ############################################# Task3
-MATCH (w)-[:IsAntonym]->(s)
-WHERE w.sentiment - s.sentiment > 1
-RETURN w, s, (w.sentiment - s.sentiment) as difference
-ORDER BY difference desc
-
 MATCH (ant1)-[:IsAntonym]->(ant2)
 WHERE ant1.sentiment - ant2.sentiment > 1
 MATCH (pol1)-[:IsSynonym]->(ant1)-[:IsAntonym]->(ant2)<-[:IsSynonym]-(pol2)
