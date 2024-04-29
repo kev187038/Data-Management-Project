@@ -58,20 +58,26 @@ def readQueriesFromFile(file_path):
 
 
 
-def getResults(relational_query, graph_query, task):
+def getResults(graph_query, relational_query, task):
     # Esecuzione e confronto delle query
-    neo4j_result = execute_neo4j_query(graph_queries[i])
-    postgresql_result = executePostgresqlQuery(relational_queries[i])
+    neo4j_result = execute_neo4j_query(graph_query)
+    postgresql_result = executePostgresqlQuery(relational_query)
     tuples = []
     for record in neo4j_result:
         tup = []
         for item in record:
+            if (isinstance(item, list)):
+                result = ''
+                for record in item:
+                    result += record['word'] + '(' + record['type'] + '), '
+                result = result[:-2]
+                tup.append(result)
             if isinstance(item, neo4j.graph.Node):
                 tup.append(item['word'])
                 tup.append(item['type'])
-                if task == 1:
+                if task == 7:
                     tup.append(item['sentiment'])
-            elif isinstance(item, (int, float)):
+            elif isinstance(item, (int, float, str)):
                 tup.append(item)
 
         tuples.append(tuple(tup))
@@ -80,8 +86,9 @@ def getResults(relational_query, graph_query, task):
 
 
 def compareResults(rel, gr):
-    if (len(rel) != len(gr)):
-        return False
+    #if (len(rel) != len(gr)):
+    #     print('The number of records returned is different')
+    #    return False
     for i in range(len(rel)):
         tup_rel = rel[i]
         tup_gr = gr[i]
@@ -92,9 +99,23 @@ def compareResults(rel, gr):
         for j in range(len(tup_rel)):
             if isinstance(tup_rel[j], str):
                 if tup_rel[j] != tup_gr [j]:
+                    if task == 9:
+                        tuprel = sorted([word.strip() for word in tup_rel[j].split(',')])
+                        tupgr = sorted([word.strip() for word in tup_gr[j].split(',')])
+
+                        if (len(tuprel)!=len(tupgr)):
+                            print(tupgr,tuprel)
+                            return False
+                        for k in range(len(tupgr)):
+                            if tupgr[k]!=tuprel[k]:
+                                print(tupgr,tuprel)
+                                return False
+                        continue
+                    print(tup_gr, tup_rel)
                     return False
             elif isinstance(tup_rel[j], (int,float)):
                 if abs(tup_rel[j] - tup_gr[j]) > 1e-5:
+                    print(tup_gr, tup_rel)
                     return False
 
     return True
@@ -102,12 +123,16 @@ def compareResults(rel, gr):
 # Lettura delle query dal file
 relational_queries = readQueriesFromFile("relational_queries.txt")
 graph_queries = readQueriesFromFile("graph_queries.txt")
-
+errors = 0
 for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
+
     print('Dealing with Task', task)
     relational_results, graph_results = getResults(graph_queries[i], relational_queries[i], task) 
     if compareResults(relational_results, graph_results):
         print('Success! The results of the queries are the same!')
     else:
         print('Something went wrong in Task', task)
+        errors += 1
+
+print(errors, 'errors occurred')

@@ -24,8 +24,7 @@ from ishypernym h1
 )
 select hypernym, type_hypernym, count(distinct(hyponym, type_hyponym))
 from hypernyms_till_depth_three
-group by hypernym, type_hypernym
-order by count desc;
+group by hypernym, type_hypernym;
 ############################################ Task3
 with distant_antonyms as (
 select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym
@@ -47,6 +46,7 @@ from words pol1 join issynonym s1 on
      on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
      join words pol2 
      on pol2.word = s2.word and pol2.type = s2.type_word
+where not abs(pol1.sentiment - pol2.sentiment) < 1e-5
 )
 select pol1, type_pol1, pol2, type_pol2, ant1, type_ant1, ant2, type_ant2, abs(sent_pol1 - sent_pol2) as difference
 from political_pairs as pp
@@ -54,7 +54,7 @@ where abs(sent_pol1 - sent_pol2) <= all(select abs(sent_pol1 - sent_pol2)
 							from political_pairs as pp2
 							where pp.ant1 = pp2.ant1 and pp.type_ant1 = pp2.type_ant1 and pp.ant2 = pp2.ant2 
 									and pp.type_ant2 = pp2.type_ant2
-							) and abs(sent_pol1 - sent_pol2) > 0;
+							);
 ########################################### Task4
 with countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
 from issynonym s1 
@@ -100,7 +100,7 @@ from words
 where word not like '%\_%')
 select Length, avg(sentiment), count((word, type)) as Num_words
 from words_with_len
-group by Length
+group by Length;
 ########################################## Task7
 with average_calculation as (select w1.word, w1.type, w1.sentiment, avg(w2.sentiment)
 as average_cluster_sentiment
@@ -113,11 +113,10 @@ from words w1 join issynonym s on w1.word = s.word and w1.type = s.type_word joi
 w2.word = s.synonym and w2.type = s.type_synonym join average_calculation av on av.word = w1.word 
 and av.type = w1.type
 group by av.word, av.type, av.sentiment, av.average_cluster_sentiment)
-select s.word, s.type, s.sentiment, s.average_cluster_sentiment, s.st_dev, ((s.sentiment- s.average_cluster_sentiment)/s.st_dev) as
-zscore
+select s.word, s.type, s.sentiment, ((s.sentiment- s.average_cluster_sentiment)/s.st_dev) as
+zscore, s.average_cluster_sentiment, s.st_dev
 from std_deviation s
-where st_dev >= 1e-10
-order by zscore desc;
+where st_dev >= 1e-10;
 ######################################### Task8
 select w1.word, w1.type
 from words w1 join issynonym s1 on w1.word = s1.word and w1.type = s1.type_word
@@ -129,8 +128,8 @@ having count(distinct type_synonym) = (select count(distinct type)
 with r as (select hypernym as word, type_hypernym as type
 from ishypernym join issynonym on issynonym.word = hypernym and issynonym.type_word = type_hypernym
 except
-select w.hypernym, w.type_hypernym
-from ishypernym w join ishypernym h on w.hypernym = h.hyponym and w.type_hypernym = h.type_hyponym
+select hyponym, type_hyponym
+from ishypernym
 ),
 semanticFields as (select r.word, r.type, hyponym as inSemField, type_hyponym as inSemFieldType
 from r join ishypernym on r.word = hypernym and r.type = type_hypernym
@@ -139,8 +138,7 @@ select r.word, r.type, synonym as inSemField, type_synonym as inSemFieldType
 from r join issynonym s on r.word = s.word  and r.type = s.type_word)
 select word, type, string_agg(concat(concat(concat(inSemField, '('), inSemFieldType), ')'), ', ') as SemanticField
 from semanticFields
-group by word, type
-order by word;
+group by word, type;
 ######################################### Task10
 select w1.word
 from words w1  

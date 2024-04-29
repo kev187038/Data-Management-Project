@@ -5,12 +5,12 @@ return avg(sentiment), numSyn;
 ############################################# Task2
 MATCH (w:Word)-[:IsHypernym*1..3]->(s:Word) 
 WITH (COUNT(DISTINCT s)) AS c, w
-ORDER BY c DESC
 RETURN w, c;
 ############################################# Task3
 MATCH (ant1)-[:IsAntonym]->(ant2)
 WHERE ant1.sentiment - ant2.sentiment > 1
 MATCH (pol1)-[:IsSynonym]->(ant1)-[:IsAntonym]->(ant2)<-[:IsSynonym]-(pol2)
+WHERE NOT abs(pol1.sentiment - pol2.sentiment) < 1e-5
 WITH ant1, ant2, COLLECT({pol1: pol1, pol2: pol2}) AS political_pairs
 WITH ant1, ant2, REDUCE(minDiff = [head(political_pairs)], diff IN tail(political_pairs) |
     CASE 
@@ -20,7 +20,6 @@ WITH ant1, ant2, REDUCE(minDiff = [head(political_pairs)], diff IN tail(politica
     END) AS minDifference
 UNWIND minDifference AS minDiff
 WITH minDiff.pol1 AS pol1, minDiff.pol2 AS pol2, ant1, ant2, Round(abs(minDiff.pol1.sentiment - minDiff.pol2.sentiment), 5) AS difference
-WHERE difference >= 1e-5    
 RETURN pol1, pol2, ant1, ant2, difference;
 ########################################### Task4
 Match (w)-[r:IsSynonym]->(s:Word)
@@ -40,7 +39,7 @@ RETURN AVG(similarity);
 ########################################### Task6
 MATCH (w)
 WHERE NOT w.word CONTAINS '_'
-RETURN SIZE(w.word) AS length, COUNT(w) as num_words, AVG(w.sentiment) as mean_sentiment;
+RETURN SIZE(w.word) AS length, AVG(w.sentiment) as mean_sentiment, COUNT(w) as num_words;
 ########################################### Task7
 MATCH (w)-[:IsSynonym]->(s)
 WITH w, COLLECT(s) as synonyms, AVG(s.sentiment) as avg_syn_sentiment
@@ -48,8 +47,7 @@ WITH w, synonyms, avg_syn_sentiment,
     REDUCE (acc = 0, i IN RANGE(0, SIZE(synonyms) - 1) | acc + (synonyms[i].sentiment - avg_syn_sentiment)*(synonyms[i].sentiment - avg_syn_sentiment))/SIZE(synonyms) AS var
 WITH w, avg_syn_sentiment, SQRT(var) as stddev
 WHERE NOT ABS(stddev) < 1e-10
-RETURN w, (w.sentiment - avg_syn_sentiment)/stddev AS zscore, stddev, avg_syn_sentiment
-ORDER BY zscore desc;
+RETURN w, (w.sentiment - avg_syn_sentiment)/stddev AS zscore, avg_syn_sentiment, stddev;
 ########################################## Task8
 MATCH (w)
 WITH w
@@ -62,14 +60,13 @@ WITH w, COLLECT(DISTINCT s.type) AS stypes, types
 WHERE stypes = types
 RETURN w;
 ########################################## Task9
-MATCH (w)-[:IsSynonym]->(s) 
+MATCH (w)
 WHERE NOT ()-[:IsHypernym]->(w)
-WITH w, COLLECT(s) AS syns
+MATCH (w)-[:IsSynonym]->(s) 
+WITH w, COLLECT(s) AS synonyms
 MATCH (w)-[:IsHypernym]->(h)
-WHERE NOT h IN syns
-WITH w, syns, COLLECT(h) AS hyponyms
-RETURN w, syns + hyponyms AS semantic_field
-ORDER BY w.word;
+WITH w, synonyms, COLLECT(h) AS hyponyms
+RETURN w, REDUCE(output = [], x IN synonyms + hyponyms | CASE WHEN NOT x IN output THEN output + x ELSE output END) AS semantic_field;
 ########################################## Task10
 MATCH (w)
 WITH w
