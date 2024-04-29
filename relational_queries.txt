@@ -47,8 +47,6 @@ from words pol1 join issynonym s1 on
      on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
      join words pol2 
      on pol2.word = s2.word and pol2.type = s2.type_word
--- maybe here there should be a where clause
--- where abs(pol1.sentiment - pol2.sentiment) > 0
 )
 select pol1, type_pol1, pol2, type_pol2, ant1, type_ant1, ant2, type_ant2, abs(sent_pol1 - sent_pol2) as difference
 from political_pairs as pp
