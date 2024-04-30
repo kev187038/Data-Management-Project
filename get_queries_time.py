@@ -92,10 +92,10 @@ def getTimes(graph_query, relational_query, graph_query_norm, relational_query_n
     avg_relational_time = []
     avg_norm_graph_time = []
     avg_norm_relational_time = []
-    neo = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query, N, avg_graph_time))
-    pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N, avg_relational_time))
-    neo_norm = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query_norm, N, avg_norm_graph_time))
-    pgsql_norm = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query_norm, N, avg_norm_relational_time))
+    neo = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query, N, avg_graph_time, "words-graph"))
+    pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N, avg_relational_time, "words-relational"))
+    neo_norm = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query_norm, N, avg_norm_graph_time, "wg-half-relations"))
+    pgsql_norm = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query_norm, N, avg_norm_relational_time, "wr-half-relations"))
     neo.start()
     pgsql.start()
     neo_norm.start()
@@ -122,7 +122,7 @@ def getTimes(graph_query, relational_query, graph_query_norm, relational_query_n
     #Automated result registration
     with open('./query_times.txt', 'a') as file:
     	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: {avg_relational_time}\n\
-                Task {task}\nAvg normalized graph time: {avg_norm_graph_time}\nAvg normalized relational time: {avg_norm_relational_time}\n")
+                     Avg normalized graph time: {avg_norm_graph_time}\nAvg normalized relational time: {avg_norm_relational_time}\n")
   
     
 # Lettura delle query dal file
