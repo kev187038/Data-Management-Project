@@ -3,16 +3,16 @@ import neo4j  # Import Neo4j driver
 import re  # Import regular expression module
 
 # Function to connect to PostgreSQL database
-def connectToPostgresql():
+def connectToPostgresql(dbname):
     conn = psycopg2.connect(
-        dbname="words-relational", user="postgres", password="password", 
+        dbname=dbname, user="postgres", password="password", 
         host="localhost", port="5432"
     )
     return conn
 
 # Function to execute PostgreSQL query
-def executePostgresqlQuery(query):
-    conn = connectToPostgresql()
+def executePostgresqlQuery(query, dbname):
+    conn = connectToPostgresql(dbname)
     cur = conn.cursor()
     cur.execute(query)
     rows = cur.fetchall()
@@ -35,8 +35,8 @@ class Neo4jConnection:
             return list(result)
 
 # Function to execute Neo4j query
-def execute_neo4j_query(query):
-    neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", "words-graph")
+def execute_neo4j_query(query, dbname):
+    neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", dbname)
     result = neo4j_conn.runQuery(query)
     neo4j_conn.close()
     return result
@@ -107,12 +107,13 @@ def compareResults(rel, gr):
 
     return True  # Return True if all comparisons pass
 
+
 # Function to execute queries in Neo4j and PostgreSQL, and compare their results
-def getResults(graph_query, relational_query, task):
+def getResults(graph_query, relational_query, task, dbname1, dbname2):
     # Execute the Neo4j query and store the result
-    neo4j_result = execute_neo4j_query(graph_query)
+    neo4j_result = execute_neo4j_query(graph_query, dbname1)
     # Execute the PostgreSQL query and store the result
-    postgresql_result = executePostgresqlQuery(relational_query)
+    postgresql_result = executePostgresqlQuery(relational_query, dbname2)
     tuples = []
 
     # Iterate through each record in the Neo4j result
@@ -151,9 +152,12 @@ def getResults(graph_query, relational_query, task):
     return sorted(postgresql_result), sorted(tuples)
 
 
+
 # Read queries from files
 relational_queries = readQueriesFromFile("relational_queries.txt")
 graph_queries = readQueriesFromFile("graph_queries.txt")
+normalized_relational = readQueriesFromFile("normalized_relational_queries.txt")
+normalized_graph = readQueriesFromFile("normalized_graph_queries.txt")
 errors = 0
 
 # Compare results for each task
@@ -161,8 +165,9 @@ for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
 
     print('Dealing with Task', task)
-    relational_results, graph_results = getResults(graph_queries[i], relational_queries[i], task)
-    if compareResults(relational_results, graph_results):
+    relational_results_deno, graph_results_deno = getResults(graph_queries[i], relational_queries[i], task, "words-graph", "words-relational")
+    relational_results_norm, graph_results_norm = getResults(normalized_graph[i], normalized_relational[i], task, "wg-half-relations", "wr-half-relations")
+    if compareResults(relational_results_deno, graph_results_deno) and compareResults(relational_results_norm, graph_results_norm) and compareResults(relational_results_deno,relational_results_norm):
         print('Success! The results of the queries are the same!')
     else:
         print('Something went wrong in Task', task)

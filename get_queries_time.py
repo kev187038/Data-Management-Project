@@ -5,19 +5,19 @@ import threading
 from time import time
 import sys
 # Connessione al database PostgreSQL
-def connectToPostgresql():
+def connectToPostgresql(dbname):
     conn = psycopg2.connect(
-        dbname="words-relational", user="postgres", password="password", 
+        dbname=dbname, user="postgres", password="password", 
 		host="localhost", port="5432"
     )
     return conn
 
 # Esecuzione della query in PostgreSQL ed estrazione dei tempi medi di querying
-def executePostgresqlQueryNTimes(query, N, avg):
+def executePostgresqlQueryNTimes(query, N, avg, dbname):
     try:
         result = 0
         for i in range(N):
-            conn = connectToPostgresql()
+            conn = connectToPostgresql(dbname)
             cur = conn.cursor()
             t1 = time()
             print(f"PG ADMIN DOING QUERY {i+1}")
@@ -52,12 +52,12 @@ class Neo4jConnection:
             return t
 
 # Esecuzione della query in Neo4j
-def execute_neo4j_queryNTimes(query, N, avg):
+def execute_neo4j_queryNTimes(query, N, avg, dbname):
     try:
         result = 0
         for i in range(N):
             #Each time we open and close connection to try avoid caching
-            neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", "words-graph")
+            neo4j_conn = Neo4jConnection("bolt://localhost:7687", "neo4j", "password", dbname)
             print(f"NEO DOING QUERY {i+1}")
             time = neo4j_conn.runQuery(query)
             #print(f"NEO DONE QUERY {i+1}")
@@ -86,16 +86,26 @@ def readQueriesFromFile(file_path):
     return queries
     
     
-def getTimes(graph_query, relational_query, task, N):
+def getTimes(graph_query, relational_query, graph_query_norm, relational_query_norm, task, N):
     #Thread separati per neo4j e pgadmin4 
     avg_graph_time = []
     avg_relational_time = []
+    avg_norm_graph_time = []
+    avg_norm_relational_time = []
     neo = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query, N, avg_graph_time))
     pgsql = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query, N, avg_relational_time))
+    neo_norm = threading.Thread(target=execute_neo4j_queryNTimes, args=(graph_query_norm, N, avg_norm_graph_time))
+    pgsql_norm = threading.Thread(target=executePostgresqlQueryNTimes, args=(relational_query_norm, N, avg_norm_relational_time))
     neo.start()
     pgsql.start()
+    neo_norm.start()
+    pgsql_norm.start()
+
     neo.join()
     pgsql.join()
+    #inizia i test sul db normalizzato dopo per evitare interferenze (i.e. accesso alle stesse aree di memoria, quindi caching)
+    neo_norm.join()
+    pgsql_norm.join()
     #Estrazione risultati dai thread
     avg_graph_time = avg_graph_time[0]
     avg_relational_time = avg_relational_time[0]
@@ -111,12 +121,16 @@ def getTimes(graph_query, relational_query, task, N):
         print("Relational db on average employed " + str(percentage) + "% of the time of the graph db\n\n")
     #Automated result registration
     with open('./query_times.txt', 'a') as file:
-    	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: {avg_relational_time}\n")
+    	file.write(f"Task {task}\nAvg graph time: {avg_graph_time}\nAvg relational time: {avg_relational_time}\n\
+                Task {task}\nAvg normalized graph time: {avg_norm_graph_time}\nAvg normalized relational time: {avg_norm_relational_time}\n")
   
     
 # Lettura delle query dal file
 relational_queries = readQueriesFromFile("relational_queries.txt")
 graph_queries = readQueriesFromFile("graph_queries.txt")
+relational_queries_norm = readQueriesFromFile("normalized_relational_queries.txt")
+graph_queries_norm = readQueriesFromFile("normalized_graph_queries.txt")
+
 #N should normally be 100
 #Repetitions vary for each task (we cannot repeat a 1 hour task 100 times!)
     # T1  T2 T3   T4  T5   T6   T7  T8  T9  T10 
@@ -126,5 +140,5 @@ for i in range(min(len(relational_queries), len(graph_queries))):
     task = i+1
 
     print('Dealing with Task', task)
-    getTimes(graph_queries[i], relational_queries[i], task, N[i]) 
+    getTimes(graph_queries[i], relational_queries[i], graph_queries_norm[i], relational_queries_norm[i], task, N[i]) 
     
