@@ -1,0 +1,64 @@
+############################################ Task3
+with synonyms as (
+select * 
+from issynonym 
+union
+select synonym, type_synonym, word, type_word
+from issynonym
+),
+antonyms as (
+select * 
+from isantonym 
+union
+select antonym, type_antonym, word, type_word
+from isantonym	
+),
+distant_antonyms as (
+select w1.word word, w1.type type_word, w2.word antonym, w2.type type_antonym
+from words w1 join antonyms a
+     on w1.word = a.word and w1.type = a.type_word
+     join words w2
+     on w2.word = a.antonym and w2.type = a.type_antonym
+where w1.sentiment - w2.sentiment > 1
+), political_pairs as (
+select pol1.word pol1, pol1.type type_pol1, pol1.sentiment sent_pol1,
+      distant_antonyms.word ant1, distant_antonyms.type_word type_ant1,
+      distant_antonyms.antonym ant2, distant_antonyms.type_antonym type_ant2,
+      pol2.word pol2, pol2.type type_pol2, pol2.sentiment sent_pol2
+from words pol1 join synonyms s1 on
+     pol1.word = s1.word and pol1.type = s1.type_word
+     join distant_antonyms 
+     on s1.synonym = distant_antonyms.word and s1.type_synonym = distant_antonyms.type_word
+     join synonyms s2
+     on distant_antonyms.antonym = s2.synonym and distant_antonyms.type_antonym = s2.type_synonym
+     join words pol2 
+     on pol2.word = s2.word and pol2.type = s2.type_word
+where not abs(pol1.sentiment - pol2.sentiment) < 1e-5
+)
+select pol1, type_pol1, pol2, type_pol2, ant1, type_ant1, ant2, type_ant2, abs(sent_pol1 - sent_pol2) as difference
+from political_pairs as pp
+where abs(sent_pol1 - sent_pol2) <= all(select abs(sent_pol1 - sent_pol2)
+							from political_pairs as pp2
+							where pp.ant1 = pp2.ant1 and pp.type_ant1 = pp2.type_ant1 and pp.ant2 = pp2.ant2 
+									and pp.type_ant2 = pp2.type_ant2
+							);
+########################################### Task4
+with synonyms as (
+select * 
+from issynonym 
+union
+select synonym, type_synonym, word, type_word
+from issynonym
+),
+countSyn as (select word, type_word, count((synonym, type_synonym)) as numSyn
+from synonyms s1 
+group by word, type_word),
+clustering_coefficients as (select s1.word, s1.type_word, countsyn.numsyn,
+	cast(count((s2.word, s2.type_word)) as float)/(countsyn.numsyn*countsyn.numsyn) as clusterCoefficient
+from countsyn join synonyms s1 on countsyn.word = s1.word and countsyn.type_word = s1.type_word 
+join synonyms s2 on s2.word = s1.synonym and s2.type_word = s1.type_synonym
+join synonyms s3 on s3.word = s2.synonym and s3.type_word = s2.type_synonym
+and s3.synonym = s1.word and s3.type_synonym = s1.type_word
+group by s1.word, s1.type_word, countsyn.numsyn)
+select avg(clusterCoefficient) as Average_CC
+from clustering_coefficients as cc;
