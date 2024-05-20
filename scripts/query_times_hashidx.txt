@@ -1,0 +1,60 @@
+Task 1
+Avg graph time: 2.019984121322632
+Avg relational time: 0.5661984801292419
+Avg normalized graph time: 2.0189630818367004
+Avg normalized relational time: 3.410709707736969
+
+Task 2
+Avg graph time: 2.0534291744232176
+Avg relational time: 397.8264621257782
+Avg normalized graph time: 2.2219682216644285
+Avg normalized relational time: 395.87823872566224
+
+Task 3
+Avg graph time: 2.06043701171875
+Avg relational time: 16.670322477817535
+Avg normalized graph time: 2.061357135772705
+Avg normalized relational time: 37.907787594795224
+
+Task 4
+Avg graph time: 2.0685799189976284
+Avg relational time: 24.42613169465746
+Avg normalized graph time: 2.113962697982788
+Avg normalized relational time: 31.84852282660348
+
+Task 5
+Avg graph time: 2.068980758190155
+Avg relational time: 2.342193851470947
+Avg normalized graph time: 2.0649782323837282
+Avg normalized relational time: 9.866537005901337
+
+Task 6
+Avg graph time: 2.0686399221420286
+Avg relational time: 0.04884876728057861
+Avg normalized graph time: 2.072667520046234
+Avg normalized relational time: 0.04750696897506714
+
+Task 7
+Avg graph time: 2.068764476776123
+Avg relational time: 4.832576780319214
+Avg normalized graph time: 2.072433423995972
+Avg normalized relational time: 10.474285278320313
+
+Task 8
+Avg graph time: 2.0640155458450318
+Avg relational time: 0.6979439234733582
+Avg normalized graph time: 2.0690146565437315
+Avg normalized relational time: 2.7009684109687804
+
+Task 9
+Avg graph time: 2.060738468170166
+Avg relational time: 1.0505150604248046
+Avg normalized graph time: 2.0717228937149046
+Avg normalized relational time: 4.914301795959473
+
+Task 10
+Avg graph time: 2.0675232195854187
+Avg relational time: 0.13582645654678344
+Avg normalized graph time: 2.0567641472816467
+Avg normalized relational time: 0.16315846681594848
+
